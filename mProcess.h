@@ -97,8 +97,8 @@ void mProcess::begin(SNIP_Parameters_s *param)
   inhib=param->inhib;
   nrep=param->nrep;
 
-  nest1=0;
-  nest2=0;
+  nest1=1<<10;
+  nest2=1<<10;
   
   out1=NULL;
   out2=NULL;

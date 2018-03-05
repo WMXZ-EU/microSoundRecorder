@@ -110,7 +110,7 @@ typedef struct
    int32_t nrep;       // noise only interval (nrep =0  indicates no noise archiving)
 } SNIP_Parameters_s; 
 
-SNIP_Parameters_s snipParameters = { 1<<10, 1000, 10000, 3750, 37, 0 };
+SNIP_Parameters_s snipParameters = { 1<<10, 1000, 10000, 3750, 375, 0 };
 
 //==================== Audio interface ========================================
 /*
@@ -278,7 +278,6 @@ void setup() {
     int16_t nbits=12; 
     acq.digitalShift(nbits); 
   #endif
-
   queue1.begin();
 }
 
