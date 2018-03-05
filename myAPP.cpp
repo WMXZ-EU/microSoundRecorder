@@ -21,7 +21,7 @@
  */
  
  /*
- * Basic High speed audio logger
+ * Envionmental micro Sound Recorder
  * using Bill Greimans's SdFs on Teensy 3.6 
  * which must be downloaded from https://github.com/greiman/SdFs 
  * and installed as local library
@@ -247,7 +247,7 @@ void setup() {
   // put your setup code here, to run once:
 
 	AudioMemory (600);
-  // check is it is our time to record
+  // check if it is our time to record
   // checkDutyCycle(&acqParameters, -1); // will not return if if sould not continue with acquisition 
 
   ledOn();
