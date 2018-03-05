@@ -1,7 +1,8 @@
 
 
-# BasicAudioLogger
-Basic framework for logging audio to uSD on T3.6 (T3.5 possible but not tested)
+# microSoundRecorder
+Environmental Sound Recorder for Teensy 3.6. It builds on the BasicAudioLogger, but will be developed into a tool suited for environmental sound monitoring and bio-acoustic research.
+
 
 ## supports 
 ### buid-in 
@@ -16,3 +17,7 @@ The I2S_32 mode allows an improved acquisiton of 24 bit MEMS microphones
 - audio-triggered archiving
 - single file / event archiving
 - variable pre-trigger
+
+## planned
+- startup menu
+- data download option
