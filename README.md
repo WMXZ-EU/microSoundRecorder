@@ -20,4 +20,4 @@ The I2S_32 mode allows an improved acquisiton of 24 bit MEMS microphones
 
 ## planned
 - startup menu
-- data download option
+- data offload option
