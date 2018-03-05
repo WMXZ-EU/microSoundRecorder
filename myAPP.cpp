@@ -124,7 +124,7 @@ SNIP_Parameters_s snipParameters = { 1<<10, 1000, 10000, 3750, 37, 0 };
  * type "int16_t" is compatible with stock AudioStream
  */
 #define MQUEU 550 // number of buffers in aquisition queue
-#define MDEL 0   // maximal delay in buffer counts (128/fs each; 128/48 = 2.5 ms each)
+#define MDEL 10   // maximal delay in buffer counts (128/fs each; 128/48 = 2.5 ms each)
 
 #if (ACQ == _ADC_0) || (ACQ == _ADC_D)
   #include "input_adc.h"
@@ -279,9 +279,6 @@ void setup() {
     acq.digitalShift(nbits); 
   #endif
 
-#ifdef USE_DELAY
-//  delay1.setDelay(10); // 10 buffers (25 ms)
-#endif
   queue1.begin();
 }
 

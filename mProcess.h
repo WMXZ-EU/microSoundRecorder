@@ -182,7 +182,7 @@ void mProcess::update(void)
   int32_t det1 = (max1Val > thresh*nest1);
   int32_t det2 = (max2Val > thresh*nest2);
 
-  if((sigCount<=-inhib) && ( det1 || det2)) {sigCount=extr;}
+  if(((sigCount>0) || (sigCount<=-inhib)) && ( det1 || det2)) {sigCount=extr;}
   
   if(sigCount>0) // we have detection or still data to be transmitted
   { detCount++;
