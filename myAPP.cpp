@@ -124,7 +124,7 @@ SNIP_Parameters_s snipParameters = { 1<<10, 1000, 10000, 3750, 37, 0 };
  * type "int16_t" is compatible with stock AudioStream
  */
 #define MQUEU 550 // number of buffers in aquisition queue
-#define MDEL 30   // maximal delay in buffer counts (128/fs each; 128/48 = 2.5 ms each)
+#define MDEL 0   // maximal delay in buffer counts (128/fs each; 128/48 = 2.5 ms each)
 
 #if (ACQ == _ADC_0) || (ACQ == _ADC_D)
   #include "input_adc.h"
@@ -171,20 +171,26 @@ SNIP_Parameters_s snipParameters = { 1<<10, 1000, 10000, 3750, 37, 0 };
   static void myUpdate(void) { queue1.update(); }
   AudioStereoMultiplex  mux1((Fxn_t)myUpdate);
 
+#define USE_DELAY
+#ifdef USE_DELAY
   #include "m_delay.h"
   mDelay<2,MDEL+2>  delay1(MDEL);
-  
+#endif
+ 
   #include "mProcess.h"
   mProcess process1(&snipParameters);
   
   AudioConnection     patchCord1(acq,0, process1,0);
   AudioConnection     patchCord2(acq,1, process1,1);
-//  AudioConnection     patchCord5(process1,0, mux1,0);
-//  AudioConnection     patchCord6(process1,1, mux1,1);
-  AudioConnection     patchCord3(acq,0, delay1,0);
-  AudioConnection     patchCord4(acq,1, delay1,1);
-  AudioConnection     patchCord5(delay1,0, mux1,0);
-  AudioConnection     patchCord6(delay1,1, mux1,1);
+  #ifdef USE_DELAY
+    AudioConnection     patchCord3(acq,0, delay1,0);
+    AudioConnection     patchCord4(acq,1, delay1,1);
+    AudioConnection     patchCord5(delay1,0, mux1,0);
+    AudioConnection     patchCord6(delay1,1, mux1,1);
+  #else
+    AudioConnection     patchCord5(process1,0, mux1,0);
+    AudioConnection     patchCord6(process1,1, mux1,1);
+  #endif
   AudioConnection     patchCord7(mux1, queue1);
 
 #elif ACQ == _I2S_QUAD
@@ -273,7 +279,9 @@ void setup() {
     acq.digitalShift(nbits); 
   #endif
 
-  delay1.setDelay(10); // 10 buffers (25 ms)
+#ifdef USE_DELAY
+//  delay1.setDelay(10); // 10 buffers (25 ms)
+#endif
   queue1.begin();
 }
 

@@ -188,8 +188,8 @@ void mProcess::update(void)
   { detCount++;
     // mark first block of new set of transmission // could remove or use millis()
     if(isFirst) // flag new data block (corrupting the first two words with blockCount)
-    { if(out1) {out1->data[0]=-1; out1->data[1]=-1;}
-      if(out2) {*(uint32_t*)(out2->data) = blockCount;}
+    { //if(out1) {out1->data[0]=-1; out1->data[1]=-1;}
+      //if(out2) {*(uint32_t*)(out2->data) = blockCount;}
       isFirst=0;
     }
     //
@@ -204,8 +204,8 @@ void mProcess::update(void)
   { // transmit anyway a single buffer every now and then 
     if((nrep>0) && (sigCount<0) && ((watchdog % nrep)==0))
     { noiseCount++;
-      if(out1) {out1->data[0]=-1; out1->data[1]=-1;}
-      if(out2) {*(uint32_t*)(out2->data) = blockCount;}
+      //if(out1) {out1->data[0]=-1; out1->data[1]=-1;}
+      //if(out2) {*(uint32_t*)(out2->data) = blockCount;}
       //
       if(out1) transmit(out1,0);
       if(out2) transmit(out2,1);

@@ -8,7 +8,7 @@ class mDelay : public AudioStream
 {
 public:
 
-  mDelay(int del) : AudioStream(NCH, inputQueueArray), head(0), numDelay(del){ reset(); }
+  mDelay(int del) : AudioStream(NCH, inputQueueArray), head(MQ), numDelay(del){ reset(); }
   void reset(void);
   void setDelay(int16_t ndel) {numDelay=ndel;}
   virtual void update(void);
@@ -26,7 +26,7 @@ template <int NCH, int MQ>
 void mDelay<NCH,MQ>::reset(void)
 {
   for(int ii=0; ii<NCH; ii++) for (int jj=0; jj<MQ; jj++) queue[ii][jj]=NULL;
-  head=0;
+  head=MQ;
 }
 
 template <int NCH, int MQ>
@@ -51,12 +51,12 @@ void mDelay<NCH,MQ>::update(void)
   }
   head = h;
   
-  uint16_t index = (head - numDelay + MQ) % MQ;
+  int16_t index = (head - numDelay + MQ) % MQ;
   for(int ii=0;ii<NCH;ii++)
   {
     if(queue[ii][index])
     {
-      transmit(queue[ii][index],0);
+      transmit(queue[ii][index],ii);
       release(queue[ii][index]);
       queue[ii][index]=NULL;
     }
