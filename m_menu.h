@@ -73,17 +73,25 @@ static void setTime(uint16_t hour, uint16_t minutes, uint16_t seconds)
 }
 
 /*
-? g\n:  ESM_Logger reports "on_time" value
-? p\n:  ESM_Logger reports "acq_time" value
-? r\n:  ESM_Logger reports "re_rate" value
-? i\n:  ESM_Logger reports "first_hour" value
-? u\n:  ESM_Logger reports "second_hour" value
-? v\n:  ESM_Logger reports "third_hour" value
-? f\n:  ESM_Logger reports "last_hour" value
+? o\n:  ESM_Logger reports "on_time" value
+? a\n:  ESM_Logger reports "acq_time" value
+? r\n:  ESM_Logger reports "rep_rate" value
+? 1\n:  ESM_Logger reports "first_hour" value
+? 2\n:  ESM_Logger reports "second_hour" value
+? 3\n:  ESM_Logger reports "third_hour" value
+? 4\n:  ESM_Logger reports "last_hour" value
 ? n\n:  ESM_Logger reports "name" value
 ? d\n:  ESM_Logger reports date
 ? t\n:  ESM_Logger reports time
 */
+/*
+? h\n:  thresh;     // power SNR for snippet detection
+? w\n:  win0;       // noise estimation window (in units of audio blocks)
+? s\n:  win1;       // (slow) detection watchdog window (in units of audio blocks typicaly 10x win0)
+? m\n:  extr;       // min extraction window
+? i\n:  inhib;      // guard window (inhibit follow-on secondary detections)
+? k\n:  nrep;       // noise only interval (nrep =0  indicates no noise archiving)
+ */
 char text[32]; // neded for text operations
 
 extern ACQ_Parameters_s acqParameters;
@@ -91,22 +99,31 @@ extern SNIP_Parameters_s snipParameters;
 
 static void printAll(void)
 {
-  Serial.printf("%c %2d on_time\n\r",     'g',acqParameters.on);
-  Serial.printf("%c %2d acq_time\n\r",    'p',acqParameters.ad);
-  Serial.printf("%c %2d rep_rate\n\r",    'p',acqParameters.ar);
-  Serial.printf("%c %2d first_hour\n\r",  '1',acqParameters.T1);
-  Serial.printf("%c %2d second_hour\n\r", '2',acqParameters.T2);
-  Serial.printf("%c %2d third_hour\n\r",  '3',acqParameters.T3);
-  Serial.printf("%c %2d last_hour\n\r",   '4',acqParameters.T4;
+  Serial.printf("%c %5d on_time\n\r",     'o',acqParameters.on);
+  Serial.printf("%c %5d acq_time\n\r",    'a',acqParameters.ad);
+  Serial.printf("%c %5d rep_rate\n\r",    'r',acqParameters.ar);
+  Serial.printf("%c %5d first_hour\n\r",  '1',acqParameters.T1);
+  Serial.printf("%c %5d second_hour\n\r", '2',acqParameters.T2);
+  Serial.printf("%c %5d third_hour\n\r",  '3',acqParameters.T3);
+  Serial.printf("%c %5d last_hour\n\r",   '4',acqParameters.T4);
+  Serial.println();
 //  Serial.printf("%c %s name\n\r",         'n',acqParameters.name);
   Serial.printf("%c %s date\n\r",         'd',getDate(text));
   Serial.printf("%c %s time\n\r",         't',getTime(text));
   Serial.println();
+  Serial.printf("%c %5d threshold\r\n",             'h',snipParameters.thresh);
+  Serial.printf("%c %5d noise window\r\n",          'w',snipParameters.win0);
+  Serial.printf("%c %5d slow window\r\n",           's',snipParameters.win1);
+  Serial.printf("%c %5d extraction window\r\n",     'm',snipParameters.extr);
+  Serial.printf("%c %5d inhibit window\r\n",        'i',snipParameters.inhib);
+  Serial.printf("%c %5d noise repetition rate\r\n", 'k',snipParameters.nrep);
+  //
+  Serial.println();
   Serial.println("exter 'a' to print this");
-  Serial.println("exter '?c' to read value c=(g,p,r,1,2,3,4,n,d,t)");
-  Serial.println("  e.g.: ?i will print first hour");
-  Serial.println("exter '!cval' to read value c=(g,p,r,1,2,3,4,n,d,t) and val is new value");
-  Serial.println("  e.g.: !i10 will set first hour to 10");
+  Serial.println("exter '?c' to read value c=(o,a,r,1,2,3,4,n,d,t,h,w,s,m,i,k)");
+  Serial.println("  e.g.: ?1 will print first hour");
+  Serial.println("exter '!cval' to read value c=(g,p,r,1,2,3,4,n,d,t,h,w,s,m,i,k) and val is new value");
+  Serial.println("  e.g.: !110 will set first hour to 10");
   Serial.println("exter 'xval' to exit menu (x is delay in minutes, -1 means immediate)");
   Serial.println("  e.g.: x10 will exit and hibernate for 10 minutes");
   Serial.println("        x-1 with exit and start immediately");
@@ -118,11 +135,11 @@ static void doMenu1(void)
     while(!Serial.available());
     char c=Serial.read();
     
-    if (strchr("gpr1234ndt", c))
+    if (strchr("oar1234ndthwsmik", c))
     { switch (c)
       {
-        case 'g': Serial.printf("%02d\r\n",acqParameters.on); break;
-        case 'p': Serial.printf("%02d\r\n",acqParameters.ad); break;
+        case 'o': Serial.printf("%02d\r\n",acqParameters.on); break;
+        case 'a': Serial.printf("%02d\r\n",acqParameters.ad); break;
         case 'r': Serial.printf("%02d\r\n",acqParameters.ar); break;
         case '1': Serial.printf("%02d\r\n",acqParameters.T1);break;
         case '2': Serial.printf("%02d\r\n",acqParameters.T2);break;
@@ -131,13 +148,19 @@ static void doMenu1(void)
 //        case 'n': Serial.printf("%s\r\n",acqParameters.name);break;  // could be (unique) mac address
         case 'd': Serial.printf("%s\r\n",getDate(text));break;
         case 't': Serial.printf("%s\r\n",getTime(text));break;
+        case 'h': Serial.printf("%04d\r\n",snipParameters.thresh);break;
+        case 'w': Serial.printf("%04d\r\n",snipParameters.win0);break;
+        case 's': Serial.printf("%04d\r\n",snipParameters.win1);break;
+        case 'm': Serial.printf("%04d\r\n",snipParameters.extr);break;
+        case 'i': Serial.printf("%04d\r\n",snipParameters.inhib);break;
+        case 'k': Serial.printf("%04d\r\n",snipParameters.nrep);break;
       }
     }
 }
 
 /*
-! g val\n:       ESM_Logger sets "on_time" value 
-! p val\n:       ESM_Logger sets "acq_time" value
+! o val\n:       ESM_Logger sets "on_time" value 
+! a val\n:       ESM_Logger sets "acq_time" value
 ! r val\n:       ESM_Logger sets "rep_rate" value
 ! 1 val\n:       ESM_Logger sets "first_hour" value
 ! 2 val\n:       ESM_Logger sets "second_hour" value
@@ -148,13 +171,22 @@ static void doMenu1(void)
 ! t timestring\n ESM_Logger sets time
 ! x delay\n      ESM_Logger exits menu and hibernates for the amount given in delay
 */
+/*
+! h val\n:  thresh;     // power SNR for snippet detection
+! w val\n:  win0;       // noise estimation window (in units of audio blocks)
+! s val\n:  win1;       // (slow) detection watchdog window (in units of audio blocks typicaly 10x win0)
+! m val\n:  extr;       // min extraction window
+! i val\n:  inhib;      // guard window (inhibit follow-on secondary detections)
+! k val\n:  nrep;       // noise only interval (nrep =0  indicates no noise archiving)
+ */
+
 static void doMenu2(void)
 { // for settings
     while(!Serial.available());
     char c=Serial.read();
     uint16_t year,month,day,hour,minutes,seconds;
     
-    if (strchr("gpr1234ndt", c))
+    if (strchr("oar1234ndthwsmik", c))
     { switch (c)
       {
         case 'g': acqParameters.on  =Serial.parseInt(); break;
@@ -178,8 +210,14 @@ static void doMenu2(void)
                   seconds= Serial.parseInt();
                   setTime(hour,minutes,seconds);
                   break;
+        //
+        case 'h': snipParameters.thresh = Serial.parseInt(); break;
+        case 'w': snipParameters.win0 = Serial.parseInt(); break;
+        case 's': snipParameters.win0 = Serial.parseInt(); break;
+        case 'm': snipParameters.extr = Serial.parseInt(); break;
+        case 'i': snipParameters.inhib = Serial.parseInt(); break;
+        case 'k': snipParameters.nrep = Serial.parseInt(); break;
       }
-      parMods=1;
     }  
 }
 

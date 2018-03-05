@@ -36,6 +36,7 @@
  *
  * V1 (27-Feb-2018): original version
  *          Feature: allow scheduled acquisition with hibernate during off times
+ *          Feature: allow audio triggered acquisition
  * 
  */
 #include "core_pins.h"
@@ -243,6 +244,7 @@ extern void rtc_set(unsigned long t);
 
 //__________________________General Arduino Routines_____________________________________
 
+#include "m_menu.h"
 void setup() {
   // put your setup code here, to run once:
 
@@ -261,6 +263,12 @@ void setup() {
 
   //
   uSD.init();
+
+  pinMode(3,INPUT_PULLUP);
+  if(!digitalReadFast(3))
+  { 
+    doMenu();
+  }
 
   #if (ACQ == _ADC_0) | (ACQ == _ADC_D) | (ACQ == _ADC_S)
     ADC_modification(F_SAMP,DIFF);
