@@ -189,8 +189,8 @@ static void doMenu2(void)
     if (strchr("oar1234ndthwsmik", c))
     { switch (c)
       {
-        case 'g': acqParameters.on  =Serial.parseInt(); break;
-        case 'p': acqParameters.ad  =Serial.parseInt(); break;
+        case 'o': acqParameters.on  =Serial.parseInt(); break;
+        case 'a': acqParameters.ad  =Serial.parseInt(); break;
         case 'r': acqParameters.ar  =Serial.parseInt(); break;
         case '1': acqParameters.T1  =Serial.parseInt();break;
         case '2': acqParameters.T2  =Serial.parseInt();break;

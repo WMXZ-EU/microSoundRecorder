@@ -249,12 +249,10 @@ void setup() {
   // put your setup code here, to run once:
 
 	AudioMemory (600);
-  // check if it is our time to record
-  // checkDutyCycle(&acqParameters, -1); // will not return if if sould not continue with acquisition 
 
-  ledOn();
-  while(!Serial && (millis()<3000));
-  ledOff();
+//  ledOn();
+//  while(!Serial && (millis()<3000));
+//  ledOff();
   //
   // check if RTC clock is about the compile time clock
   uint32_t t0=rtc_get();
@@ -264,12 +262,18 @@ void setup() {
   //
   uSD.init();
 
+  // if pin3 is connected to GND enter menu mode
+  int ret;
   pinMode(3,INPUT_PULLUP);
   if(!digitalReadFast(3))
-  { 
-    doMenu();
+  { // should here read parameters from disk
+    ret=doMenu();
+    // should here save parameters to disk if modified
   }
+  // check if it is our time to record
+  checkDutyCycle(&acqParameters, -1); // will not return if if sould not continue with acquisition 
 
+  // Now modify objects from audio library
   #if (ACQ == _ADC_0) | (ACQ == _ADC_D) | (ACQ == _ADC_S)
     ADC_modification(F_SAMP,DIFF);
   #elif ((ACQ == _I2S))
@@ -286,6 +290,7 @@ void setup() {
     int16_t nbits=12; 
     acq.digitalShift(nbits); 
   #endif
+  // lets start
   queue1.begin();
 }
 

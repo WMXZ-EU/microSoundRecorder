@@ -207,6 +207,8 @@ int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
     }
   }
   //
+  #define SLEEP_LONG
+  #ifdef SLEEP_LONG
   // estimate next start time
   if ((to >= T2) && (to<T3))	// sleep during the day
   {  nsec = (T3 * 3600 - tt % (24 * 3600));
@@ -218,6 +220,8 @@ int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
   {  nsec = (T1 * 3600 - tt % (24 * 3600));
   }
   if(nsec>0) setWakeupCallandSleep(nsec);
+  #else
+  #endif
     
   return 0;
 }

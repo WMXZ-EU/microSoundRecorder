@@ -123,7 +123,7 @@ uint32_t tm2seconds (struct tm *tx)
   tt=tx->tm_sec+tx->tm_min*60+tx->tm_hour*3600;  
 
   // count days size epoch until previous midnight
-  uint32_t days=tx->tm_mday;
+  uint32_t days=tx->tm_mday-1;
 
   uint32_t mm=0;
   uint32_t monthLength=0;
