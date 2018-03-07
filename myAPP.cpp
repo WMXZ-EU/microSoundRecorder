@@ -248,16 +248,16 @@ extern void rtc_set(unsigned long t);
 void setup() {
   // put your setup code here, to run once:
 
-	AudioMemory (600);
+	AudioMemory (600); // 600 blocks use about 200 kB (requires Teensy 3.6)
 
 //  ledOn();
 //  while(!Serial && (millis()<3000));
 //  ledOff();
   //
   // check if RTC clock is about the compile time clock
-  uint32_t t0=rtc_get();
-  uint32_t t1=(uint32_t)&__rtc_localtime;
-  if((t1-t0)>100) rtc_set(t1);
+//  uint32_t t0=rtc_get();
+//  uint32_t t1=(uint32_t)&__rtc_localtime;
+//  if((t1-t0)>100) rtc_set(t1);
 
   //
   uSD.init();
