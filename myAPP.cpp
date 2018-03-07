@@ -286,7 +286,7 @@ void setup() {
     I2S_modification(F_SAMP,32);
     // shift I2S data right by 8 bits to move 24 bit ADC data to LSB 
     // the lower 16 bit are always maintained for further processing
-    // typical shift value is between 8 and 12 as lower bits are only noise
+    // typical shift value is between 8 and 12 as lower ADC bits are only noise
     int16_t nbits=12; 
     acq.digitalShift(nbits); 
   #endif
