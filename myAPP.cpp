@@ -348,7 +348,7 @@ void loop() {
 
     // write to disk ( this handles also opening of files)
     // but only if we have detection
-    if((state>=0) && ((mustClose>=0) && (process1.getSigCount()>0)))
+    if((state>=0) && ((snipParameters.thresh<0) || (process1.getSigCount()>0)))
     {
       Serial.print(".");
       state=uSD.write(diskBuffer,BUFFERSIZE); // this is blocking
