@@ -143,6 +143,11 @@ void I2S_dividers(uint32_t *iscl, uint32_t fsamp, uint32_t nbits)
     iscl[2] = (int) (i3-1);
 }
 
+void I2S_stop(void)
+{
+    I2S0_RCSR &= ~(I2S_RCSR_RE | I2S_RCSR_BCE);
+}
+
 void I2S_modification(uint32_t fsamp, uint16_t nbits)
 { uint32_t iscl[3];
 

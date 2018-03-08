@@ -213,7 +213,7 @@ static void doMenu2(void)
         //
         case 'h': snipParameters.thresh = Serial.parseInt(); break;
         case 'w': snipParameters.win0 = Serial.parseInt(); break;
-        case 's': snipParameters.win0 = Serial.parseInt(); break;
+        case 's': snipParameters.win1 = Serial.parseInt(); break;
         case 'm': snipParameters.extr = Serial.parseInt(); break;
         case 'i': snipParameters.inhib = Serial.parseInt(); break;
         case 'k': snipParameters.nrep = Serial.parseInt(); break;

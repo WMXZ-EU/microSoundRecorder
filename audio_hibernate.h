@@ -207,21 +207,27 @@ int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
     }
   }
   //
-  #define SLEEP_LONG
-  #ifdef SLEEP_LONG
+  // should we be sleeping?
+  uint32_t tto= tt%(24*3600); // seconds since midnight
+  nsec=0;
   // estimate next start time
   if ((to >= T2) && (to<T3))	// sleep during the day
-  {  nsec = (T3 * 3600 - tt % (24 * 3600));
+  { if(tto<T3*3600) 
+    nsec = T3 * 3600 - tto;
   }
-  if ((T4 > T1) && ((to >= T4) || to < T1)) // sleep over midnight
-  {  nsec = ((T1+24) * 3600 - tt % (24 * 3600));
+  if ((tto<((T1+24) * 3600)) && (T4 > T1) && ((to >= T4) || to < T1)) // sleep over midnight
+  {  nsec = (T1+24) * 3600 - tto;
   }
-  if ((T3 > T4) && ((to >= T4) || to < T1)) // sleep after midnight
-  {  nsec = (T1 * 3600 - tt % (24 * 3600));
+  if ((tto< (T1 * 3600)) && (T3 > T4) && ((to >= T4) || to < T1)) // sleep after midnight
+  {  nsec = T1 * 3600 - tto;
   }
-  if(nsec>0) setWakeupCallandSleep(nsec);
-  #else
+
+  #define SLEEP_SHORT
+  #ifdef SLEEP_SHORT
+    if (nsec>acqParameters->on) nsec=acqParameters->on;
   #endif
+  
+  if(nsec>0) setWakeupCallandSleep(nsec);
     
   return 0;
 }

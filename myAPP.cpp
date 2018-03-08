@@ -98,12 +98,11 @@ ACQ_Parameters_s acqParameters = { 120, 60, 100, 0, 12, 12, 24 };
 // mustcClose = 0: flush data and close exactly on time limit
 // mustClose = 1: flush data and close immediately (not for user, this will be done by program)
 
-#define MUST_CLOSE 0 // initial value (can be -1: ignore event trigger or 0: implement event trigger)
-int16_t mustClose = MUST_CLOSE;
+int16_t mustClose = -1;// initial value (can be -1: ignore event trigger or 0: implement event trigger)
 
 // snippet extraction modul
 typedef struct
-{  int32_t thresh;     // power SNR for snippet detection
+{  int32_t thresh;     // power SNR for snippet detection (-1: disable snippet extraction)
    int32_t win0;       // noise estimation window (in units of audio blocks)
    int32_t win1;       // detection watchdog window (in units of audio blocks typicaly 10x win0)
    int32_t extr;       // min extraction window
@@ -250,7 +249,11 @@ void setup() {
 
 	AudioMemory (600); // 600 blocks use about 200 kB (requires Teensy 3.6)
 
+  // stop I2S early (to be sure)
+  I2S_stop();
+  
 //  ledOn();
+//  while(!Serial);
 //  while(!Serial && (millis()<3000));
 //  ledOff();
   //
@@ -262,14 +265,18 @@ void setup() {
   //
   uSD.init();
 
+  // load config allways first
+  uSD.loadConfig((uint16_t *)&acqParameters, 7, (int32_t *)&snipParameters, 6);
+  
   // if pin3 is connected to GND enter menu mode
   int ret;
-  pinMode(3,INPUT_PULLUP);
+  pinMode(3,INPUT_PULLUP); delay(10);
   if(!digitalReadFast(3))
-  { // should here read parameters from disk
-    ret=doMenu();
+  { ret=doMenu();
     // should here save parameters to disk if modified
+    uSD.storeConfig((uint16_t *)&acqParameters, 7, (int32_t *)&snipParameters, 6);
   }
+  //
   // check if it is our time to record
   checkDutyCycle(&acqParameters, -1); // will not return if if sould not continue with acquisition 
 
@@ -290,7 +297,11 @@ void setup() {
     int16_t nbits=12; 
     acq.digitalShift(nbits); 
   #endif
+  
+  //are we using the eventTrigger?
+  if(snipParameters.thresh>=0) mustClose=0; else mustClose=-1;
   // lets start
+  process1.begin(&snipParameters); 
   queue1.begin();
 }
 
@@ -357,7 +368,8 @@ void loop() {
       }
       outptr = diskBuffer;
 
-      mustClose=MUST_CLOSE; // reset mustClose flag
+      // reset mustClose flag
+      if(snipParameters.thresh>=0) mustClose=0; else mustClose=-1;
       Serial.println("file closed");
 
     }

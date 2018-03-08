@@ -49,7 +49,7 @@ class mProcess: public AudioStream
 {
 public:
 
-  mProcess(SNIP_Parameters_s *param) : AudioStream(2, inputQueueArray) { begin(param); }
+  mProcess(SNIP_Parameters_s *param) : AudioStream(2, inputQueueArray) {}
   void begin(SNIP_Parameters_s *param);
   virtual void update(void);
   void setThreshold(int32_t val) {thresh=val;}

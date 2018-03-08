@@ -63,6 +63,11 @@ class c_uSD
     int16_t state; // 0 initialized; 1 file open; 2 data written; 3 to be closed
     int16_t nbuf;
     int16_t closing;
+
+  public:
+  void loadConfig(uint16_t * param1, int n1, int32_t *param2, int n2);
+  void storeConfig(uint16_t * param1, int n1, int32_t *param2, int n2);
+
 };
 c_uSD uSD;
 
@@ -231,4 +236,33 @@ int16_t c_uSD::close(void)
     state=0;  // flag to open new file
     return state;
 }
+
+void c_uSD::storeConfig(uint16_t * param1, int n1, int32_t *param2, int n2)
+{ char text[32];
+  file.open("Config.txt", O_CREAT|O_WRITE|O_TRUNC);
+  for(int ii=0; ii<n1; ii++)
+  { sprintf(text,"%10d\r\n",param1[ii]); file.write((uint8_t*)text,strlen(text));
+  }
+//
+  for(int ii=0; ii<n2; ii++)
+  { sprintf(text,"%10d\r\n",param2[ii]); file.write((uint8_t*)text,strlen(text));
+  }
+  file.close();
+  
+}
+
+void c_uSD::loadConfig(uint16_t * param1, int n1, int32_t *param2, int n2)
+{
+  char text[32];
+  if(!file.open("Config.txt",O_RDONLY)) return;
+  //
+  for(int ii=0; ii<n1; ii++)
+  { file.read((uint8_t*)text,12); sscanf(text,"%d",&param1[ii]);
+  }
+  for(int ii=0; ii<n2; ii++)
+  { file.read((uint8_t*)text,12); sscanf(text,"%d",&param2[ii]);
+  }
+  file.close();
+}
+
 #endif
