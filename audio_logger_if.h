@@ -58,11 +58,13 @@ class c_uSD
     void setClosing(void) {closing=1;}
 
     int16_t close(void);
-    
+    void setPrefix(char *prefix);
   private:
     int16_t state; // 0 initialized; 1 file open; 2 data written; 3 to be closed
     int16_t nbuf;
     int16_t closing;
+
+    char name[8];
 
   public:
   void loadConfig(uint16_t * param1, int n1, int32_t *param2, int n2);
@@ -154,7 +156,7 @@ void dateTime(uint16_t* date, uint16_t* time)
   *time = FS_TIME(tx.tm_hour, tx.tm_min, tx.tm_sec);
 }
 
-char *makeFilename(void)
+char *makeFilename(char * prefix)
 { static int ifl=0;
   static char filename[40];
 
@@ -163,7 +165,8 @@ char *makeFilename(void)
 //  sprintf(filename,"File%04d.raw",ifl);
 //
   struct tm tx = seconds2tm(RTC_TSR);
-  sprintf(filename, "WMXZ_%04d_%02d_%02d_%02d_%02d_%02d", tx.tm_year, tx.tm_mon, tx.tm_mday, tx.tm_hour, tx.tm_min, tx.tm_sec);
+  sprintf(filename, "%s_%04d_%02d_%02d_%02d_%02d_%02d", prefix, 
+                    tx.tm_year, tx.tm_mon, tx.tm_mday, tx.tm_hour, tx.tm_min, tx.tm_sec);
 
   Serial.println(filename);
   return filename;  
@@ -194,11 +197,15 @@ void c_uSD::init()
   state=0;
 }
 
+void c_uSD::setPrefix(char *prefix)
+{
+  strcpy(name,prefix);
+}
 int16_t c_uSD::write(int16_t *data, int32_t ndat)
 {
   if(state == 0)
   { // open file
-    char *filename = makeFilename();
+    char *filename = makeFilename(name);
     if(!filename) {state=-1; return state;} // flag to do not anything
     //
     if (!file.open(filename, O_CREAT | O_TRUNC |O_RDWR)) 
@@ -247,6 +254,9 @@ void c_uSD::storeConfig(uint16_t * param1, int n1, int32_t *param2, int n2)
   for(int ii=0; ii<n2; ii++)
   { sprintf(text,"%10d\r\n",param2[ii]); file.write((uint8_t*)text,strlen(text));
   }
+  sprintf(text,"%s\r\n",(char*) &param1[7]);
+  file.write((uint8_t *)text,6);
+
   file.close();
   
 }
@@ -262,6 +272,9 @@ void c_uSD::loadConfig(uint16_t * param1, int n1, int32_t *param2, int n2)
   for(int ii=0; ii<n2; ii++)
   { file.read((uint8_t*)text,12); sscanf(text,"%d",&param2[ii]);
   }
+  file.read((uint8_t *)text,6);text[5]=0;
+  sscanf(text,"%s",(char *) &param1[7]);
+  
   file.close();
 }
 

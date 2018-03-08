@@ -145,7 +145,7 @@ static void doMenu1(void)
         case '2': Serial.printf("%02d\r\n",acqParameters.T2);break;
         case '3': Serial.printf("%02d\r\n",acqParameters.T3);break;
         case '4': Serial.printf("%02d\r\n",acqParameters.T4);break;
-//        case 'n': Serial.printf("%s\r\n",acqParameters.name);break;  // could be (unique) mac address
+        case 'n': Serial.printf("%s\r\n",acqParameters.name);break; 
         case 'd': Serial.printf("%s\r\n",getDate(text));break;
         case 't': Serial.printf("%s\r\n",getTime(text));break;
         case 'h': Serial.printf("%04d\r\n",snipParameters.thresh);break;
@@ -196,8 +196,8 @@ static void doMenu2(void)
         case '2': acqParameters.T2  =Serial.parseInt();break;
         case '3': acqParameters.T3  =Serial.parseInt();break;
         case '4': acqParameters.T4  =Serial.parseInt();break;
-//        case 'n': for(int ii=0; ii<4;ii++) parameters.name[ii] = Serial.read();
-//                  parameters.name[4]=0; break;
+        case 'n': for(int ii=0; ii<4;ii++) acqParameters.name[ii] = Serial.read();
+                  acqParameters.name[4]=0; break;
         case 'd':     
                   year= Serial.parseInt();
                   month= Serial.parseInt();

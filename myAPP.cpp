@@ -77,6 +77,7 @@ typedef struct
 	uint16_t ar;	// acquisition rate, i.e. every ar seconds (if < on then continuous acqisition)
 	uint16_t T1,T2; // first aquisition window (from T1 to T2) in Hours of day
 	uint16_t T3,T4; // second aquisition window (from T1 to T2) in Hours of day
+  char name[5];   // prefix for recorder file names
 } ACQ_Parameters_s;
 
 // T1 to T3 are increasing hours, T4 can be before or after midnight
@@ -84,13 +85,13 @@ typedef struct
 // if "ar" > "on" the do dutycycle, i.e.sleep between on and ar seconds
 //
 // Example
-// ACQ_Parameters_s acqParameters = {120, 60, 180, 0, 12, 12, 24};
+// ACQ_Parameters_s acqParameters = {120, 60, 180, 0, 12, 12, 24, "WMXZ"};
 //  acquire 2 files each 60 s long (totalling 120 s)
 //  sleep for 60 s (to reach 180 s acquisition interval)
 //  acquire whole day (from midnight to noon and noot to midnight)
 //
 
-ACQ_Parameters_s acqParameters = { 120, 60, 100, 0, 12, 12, 24 };
+ACQ_Parameters_s acqParameters = { 120, 60, 100, 0, 12, 12, 24, "WMXZ"};
 
 // the following global variable may be set from anywhere
 // if one wanted to close file immedately
@@ -246,6 +247,7 @@ extern void rtc_set(unsigned long t);
 #include "m_menu.h"
 void setup() {
   // put your setup code here, to run once:
+  pinMode(3,INPUT_PULLUP); // needed to enter menu if grounded
 
 	AudioMemory (600); // 600 blocks use about 200 kB (requires Teensy 3.6)
 
@@ -270,7 +272,6 @@ void setup() {
   
   // if pin3 is connected to GND enter menu mode
   int ret;
-  pinMode(3,INPUT_PULLUP); delay(10);
   if(!digitalReadFast(3))
   { ret=doMenu();
     // should here save parameters to disk if modified
@@ -300,6 +301,8 @@ void setup() {
   
   //are we using the eventTrigger?
   if(snipParameters.thresh>=0) mustClose=0; else mustClose=-1;
+  // set filename prefix
+  uSD.setPrefix(acqParameters.name);
   // lets start
   process1.begin(&snipParameters); 
   queue1.begin();
