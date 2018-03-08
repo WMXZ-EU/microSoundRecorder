@@ -172,8 +172,7 @@ SNIP_Parameters_s snipParameters = { 1<<10, 1000, 10000, 3750, 375, 0 };
   static void myUpdate(void) { queue1.update(); }
   AudioStereoMultiplex  mux1((Fxn_t)myUpdate);
 
-#define USE_DELAY
-#ifdef USE_DELAY
+#ifdef MDEL>1
   #include "m_delay.h"
   mDelay<2,MDEL+2>  delay1(MDEL);
 #endif
@@ -183,7 +182,7 @@ SNIP_Parameters_s snipParameters = { 1<<10, 1000, 10000, 3750, 375, 0 };
   
   AudioConnection     patchCord1(acq,0, process1,0);
   AudioConnection     patchCord2(acq,1, process1,1);
-  #ifdef USE_DELAY
+  #if MDEL >1
     AudioConnection     patchCord3(acq,0, delay1,0);
     AudioConnection     patchCord4(acq,1, delay1,1);
     AudioConnection     patchCord5(delay1,0, mux1,0);
@@ -321,11 +320,13 @@ void loop() {
     }
    if(state==0)
    { // generate header before file is opened
+#ifndef GEN_WAV_FILE
       uint32_t *header=(uint32_t *) headerUpdate();
       uint32_t *ptr=(uint32_t *) outptr;
       // copy to disk buffer
       for(int ii=0;ii<128;ii++) ptr[ii] = header[ii];
       outptr+=256; //(512 bytes)
+#endif
       state=1;
    }
   // fetch data from queue

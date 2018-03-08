@@ -31,6 +31,14 @@
 //
 #include "SdFs.h"
 
+#define GEN_WAV_FILE
+
+#ifdef GEN_WAV_FILE
+  char postfix[5]=".wav";
+#else
+  char postfix[5]=".raw";
+#endif
+
 // Preallocate 40MB file.
 const uint64_t PRE_ALLOCATE_SIZE = 40ULL << 20;
 
@@ -165,8 +173,8 @@ char *makeFilename(char * prefix)
 //  sprintf(filename,"File%04d.raw",ifl);
 //
   struct tm tx = seconds2tm(RTC_TSR);
-  sprintf(filename, "%s_%04d_%02d_%02d_%02d_%02d_%02d", prefix, 
-                    tx.tm_year, tx.tm_mon, tx.tm_mday, tx.tm_hour, tx.tm_min, tx.tm_sec);
+  sprintf(filename, "%s_%04d_%02d_%02d_%02d_%02d_%02d%s", prefix, 
+                    tx.tm_year, tx.tm_mon, tx.tm_mday, tx.tm_hour, tx.tm_min, tx.tm_sec,postfix);
 
   Serial.println(filename);
   return filename;  
@@ -186,6 +194,33 @@ char * headerUpdate(void)
 	return header;
 }
 
+char * wavHeader(uint32_t fileSize)
+{
+  int fsamp=48000;
+  int nchan=2;
+  int nbits=16;
+  int nbytes=nbits/8;
+
+  int nsamp=(fileSize-44)/(nbytes*nchan);
+  //
+  static char header[48]; // 44 for wav
+  //
+  strcpy(header,"RIFF");
+  strcpy(header+8,"WAVE");
+  strcpy(header+12,"fmt ");
+  strcpy(header+36,"data");
+  *(int32_t*)(header+16)= 16;// chunk_size
+  *(int16_t*)(header+20)= 1; // PCM 
+  *(int16_t*)(header+22)=nchan;// numChannels 
+  *(int32_t*)(header+24)= fsamp; // sample rate 
+  *(int32_t*)(header+28)= fsamp*nbytes; // byte rate
+  *(int16_t*)(header+32)=nchan*nbytes; // block align
+  *(int16_t*)(header+34)=nbits; // bits per sample 
+  *(int32_t*)(header+40)=nsamp*nchan*nbytes; 
+  *(int32_t*)(header+4)=36+nsamp*nchan*nbytes; 
+
+   return header;
+}
 //____________________________ FS Interface implementation______________________
 void c_uSD::init()
 {
@@ -201,6 +236,7 @@ void c_uSD::setPrefix(char *prefix)
 {
   strcpy(name,prefix);
 }
+
 int16_t c_uSD::write(int16_t *data, int32_t ndat)
 {
   if(state == 0)
@@ -233,11 +269,14 @@ int16_t c_uSD::write(int16_t *data, int32_t ndat)
   }
   return state;
 }
-
 int16_t c_uSD::close(void)
-{
-    // close file
+{   // close file
     file.truncate();
+    #ifdef GEN_WAV_FILE
+    uint32_t fileSize = file.size();
+    file.seek(0);
+    file.write(wavHeader(fileSize),44);
+    #endif
     file.close();
     
     state=0;  // flag to open new file
