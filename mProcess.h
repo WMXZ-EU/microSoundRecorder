@@ -133,6 +133,13 @@ void mProcess::update(void)
   inp1=receiveReadOnly(0);
   inp2=receiveReadOnly(1);
   if(!inp1 && !inp2) return; // have no input data
+  if(thresh<0) // don't run detector
+  {
+    if(inp1) release(inp1);
+    if(inp2) release(inp2);
+    return;
+  }
+  
   blockCount++;
   
   tmp1=allocate();

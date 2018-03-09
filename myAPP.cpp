@@ -174,7 +174,7 @@ SNIP_Parameters_s snipParameters = { 1<<10, 1000, 10000, 3750, 375, 0 };
 
 #ifdef MDEL>1
   #include "m_delay.h"
-  mDelay<2,MDEL+2>  delay1(MDEL);
+  mDelay<2,MDEL+2>  delay1(0);
 #endif
  
   #include "mProcess.h"
@@ -300,18 +300,24 @@ void setup() {
   
   //are we using the eventTrigger?
   if(snipParameters.thresh>=0) mustClose=0; else mustClose=-1;
+  if(mustClose<0) delay1.setDelay(0); else delay1.setDelay(MDEL);
+  
   // set filename prefix
   uSD.setPrefix(acqParameters.name);
   // lets start
   process1.begin(&snipParameters); 
   queue1.begin();
+  Serial.println("End of Setup");
 }
 
+#define mDebug(X) { static uint32_t t0; if(millis()>t0+1000) {Serial.println(X); t0=millis();}}
+
 volatile uint32_t maxValue=0, maxNoise=0; // possibly be updated outside
+
 void loop() {
   // put your main code here, to run repeatedly:
  static int16_t state=0; // 0: open new file, -1: last file
-
+ 
  if(queue1.available())
  {  // have data on que
     if ((checkDutyCycle(&acqParameters, state))<0)  // this also triggers closing files and hibernating, if planned

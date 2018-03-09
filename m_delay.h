@@ -34,7 +34,19 @@ void mDelay<NCH,MQ>::update(void)
 {
   audio_block_t *block;
 
-  if(numDelay >= MQ) return; // error don't do anything
+  if((numDelay<=0) || (numDelay >= MQ)) // bypass queue
+  {
+    for(int ii=0;ii<NCH;ii++)
+    {
+      block = receiveReadOnly(ii);
+      if(block)
+      {
+        transmit(block,ii);
+        release(block);        
+      }
+    }
+    return;
+  }
   //
   
   int16_t h = (head + 1) % MQ;

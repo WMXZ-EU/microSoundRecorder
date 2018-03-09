@@ -48,7 +48,7 @@ const uint64_t PRE_ALLOCATE_SIZE = 40ULL << 20;
 
 //#define MAXFILE 100
 //#define MAXBUF 1000
-#define BUFFERSIZE (16*1024)
+#define BUFFERSIZE (8*1024)
 int16_t diskBuffer[BUFFERSIZE];
 int16_t *outptr = diskBuffer;
 
@@ -73,7 +73,8 @@ class c_uSD
     int16_t closing;
 
     char name[8];
-
+    char buffer[512];
+    
   public:
   void loadConfig(uint16_t * param1, int n1, int32_t *param2, int n2);
   void storeConfig(uint16_t * param1, int n1, int32_t *param2, int n2);
@@ -273,12 +274,16 @@ int16_t c_uSD::close(void)
 {   // close file
     file.truncate();
     #ifdef GEN_WAV_FILE
-    uint32_t fileSize = file.size();
-    file.seek(0);
-    file.write(wavHeader(fileSize),44);
+      uint32_t fileSize = file.size();
+      file.seek(0);
+      file.read(buffer,512);
+      memcpy(buffer,wavHeader(fileSize),44);
+      file.seek(0);
+      file.write(buffer,512);
+      file.seek(fileSize);
     #endif
     file.close();
-    
+    Serial.println("file Closed");    
     state=0;  // flag to open new file
     return state;
 }

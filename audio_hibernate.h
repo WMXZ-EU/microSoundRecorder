@@ -142,6 +142,7 @@ void setWakeupCallandSleep(uint32_t nsec)
    
 //   Serial.println(nsec);
    rtcSetAlarm(nsec);
+   yield();
    pinMode(13,OUTPUT);
    digitalWriteFast(13,HIGH); delay(1000); digitalWriteFast(13,LOW);
    gotoSleep();
@@ -159,7 +160,7 @@ int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
   uint16_t to = tx.tm_hour;
   
   // check if we should sleep longer
-  // sleep time between T2 and T3 and T4 and T1
+  // sleep time between T2 and T3 and T4 and T1 (values are in hours)
   
   uint16_t T1 = acqParameters->T1;
   uint16_t T2 = acqParameters->T2;
@@ -184,20 +185,23 @@ int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
       uint16_t t_dur = acqParameters->ad;
       uint16_t t_rep = acqParameters->ar;
 
-      if ((t_rep>t_on) && ((tt - t_rec) >= t_on))
+      if ((t_rep>t_on) && (tt >= t_rec + t_on))
       { // need to stop
         if (flag == 0) // acquisition is closed, shut down 
         {
           nsec = (t_rec + t_rep - tt);
-          setWakeupCallandSleep(nsec); 
+          Serial.println(nsec); 
+          Serial.println("Hibernate now");
+          if(nsec>0) setWakeupCallandSleep(nsec);
+          Serial.println("Error"); 
           return 0; // will not happen, but keep compiler happy
         }
         return -1; // flag to close acquisition
       }
       //
-      if ((tt - t_start) >= t_dur)
+      if (tt >= t_start + t_dur)
       { // need to close file
-//        Serial.println(tt-t_acq);
+        Serial.println(tt-t_start-t_dur);
         Serial.println("close acquisition");
         t_start = tt; // update start time for next file
         return -1; // flag to close acquisition
