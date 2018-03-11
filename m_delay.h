@@ -49,7 +49,7 @@ void mDelay<NCH,MQ>::update(void)
   }
   //
   
-  int16_t h = (head + 1) % MQ;
+  uint16_t h = (head + 1) % MQ;
   for(int ii=0;ii<NCH;ii++)
   {
     if(queue[ii][h]) release(queue[ii][h]);
@@ -62,8 +62,8 @@ void mDelay<NCH,MQ>::update(void)
       queue[ii][h]=NULL;
   }
   head = h;
-  
-  int16_t index = (head - numDelay + MQ) % MQ;
+
+  uint16_t index = ((head  + MQ) - numDelay) % MQ;
   for(int ii=0;ii<NCH;ii++)
   {
     if(queue[ii][index])

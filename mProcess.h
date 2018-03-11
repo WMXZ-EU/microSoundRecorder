@@ -132,6 +132,7 @@ void mProcess::update(void)
   audio_block_t *inp1, *inp2, *tmp1, *tmp2;
   inp1=receiveReadOnly(0);
   inp2=receiveReadOnly(1);
+  
   if(!inp1 && !inp2) return; // have no input data
   if(thresh<0) // don't run detector
   {

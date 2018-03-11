@@ -39,7 +39,8 @@
  *          Feature: allow audio triggered acquisition
  * 
  */
-#include "core_pins.h"
+#include "core_pins.h" // this call also kinetis.h
+
 #define F_SAMP 48000 // desired sampling frequency
 /*
  * NOTE: changing frequency impacts the macros 
@@ -70,6 +71,13 @@
 	#define DIFF 0
 #endif
 
+#define MQUEU 550 // number of buffers in aquisition queue
+#define MDEL 0    // maximal delay in buffer counts (128/fs each; 128/48 = 2.5 ms each)
+                  // MDEL == -1 conects ACQ interface directly to mux and queue
+#define GEN_WAV_FILE  // generate wave files, if undefined generate raw data (with 512 byte header)
+
+/****************************************************************************************/
+// some structures to be used for controllong acquisition
 // scheduled acquisition
 typedef struct
 {	uint16_t on;	// acquisition on time in seconds
@@ -124,8 +132,6 @@ SNIP_Parameters_s snipParameters = { 1<<10, 1000, 10000, 3750, 375, 0 };
  * use if different data type requires modification to AudioStream
  * type "int16_t" is compatible with stock AudioStream
  */
-#define MQUEU 550 // number of buffers in aquisition queue
-#define MDEL 10   // maximal delay in buffer counts (128/fs each; 128/48 = 2.5 ms each)
 
 #if (ACQ == _ADC_0) || (ACQ == _ADC_D)
   #include "input_adc.h"
@@ -164,7 +170,7 @@ SNIP_Parameters_s snipParameters = { 1<<10, 1000, 10000, 3750, 375, 0 };
 #elif ACQ == _I2S_32
   #include "i2s_32.h"
   I2S_32         acq;
-  
+
   #include "m_queue.h"
   mRecordQueue<int16_t, MQUEU> queue1;
   
@@ -172,27 +178,29 @@ SNIP_Parameters_s snipParameters = { 1<<10, 1000, 10000, 3750, 375, 0 };
   static void myUpdate(void) { queue1.update(); }
   AudioStereoMultiplex  mux1((Fxn_t)myUpdate);
 
-#ifdef MDEL>1
-  #include "m_delay.h"
-  mDelay<2,MDEL+2>  delay1(0);
-#endif
- 
+  #if MDEL>=0
+    #include "m_delay.h"
+    mDelay<2,(MDEL+2)>  delay1(0); // have ten buffers more in queue only to be safe
+  #endif
+  
   #include "mProcess.h"
   mProcess process1(&snipParameters);
-  
-  AudioConnection     patchCord1(acq,0, process1,0);
-  AudioConnection     patchCord2(acq,1, process1,1);
-  #if MDEL >1
+
+  #if MDEL <0
+    AudioConnection     patchCord1(acq,0, mux1,0);
+    AudioConnection     patchCord2(acq,1, mux1,1);
+    
+  #else
+    AudioConnection     patchCord1(acq,0, process1,0);
+    AudioConnection     patchCord2(acq,1, process1,1);
+    //
     AudioConnection     patchCord3(acq,0, delay1,0);
     AudioConnection     patchCord4(acq,1, delay1,1);
     AudioConnection     patchCord5(delay1,0, mux1,0);
     AudioConnection     patchCord6(delay1,1, mux1,1);
-  #else
-    AudioConnection     patchCord5(process1,0, mux1,0);
-    AudioConnection     patchCord6(process1,1, mux1,1);
   #endif
   AudioConnection     patchCord7(mux1, queue1);
-
+  
 #elif ACQ == _I2S_QUAD
   #include "input_i2s_quad.h"
   AudioInputI2SQuad     acq;
@@ -207,6 +215,7 @@ SNIP_Parameters_s snipParameters = { 1<<10, 1000, 10000, 3750, 375, 0 };
   AudioConnection     patchCord3(acq,2, mux1,2);
   AudioConnection     patchCord4(acq,3, mux1,3);
   AudioConnection     patchCord5(mux1, queue1);
+  
 #else
   #error "invalid acquisition device"
 #endif
@@ -248,7 +257,8 @@ void setup() {
   // put your setup code here, to run once:
   pinMode(3,INPUT_PULLUP); // needed to enter menu if grounded
 
-	AudioMemory (600); // 600 blocks use about 200 kB (requires Teensy 3.6)
+#define MAUDIO (MQUEU+MDEL+50)
+	AudioMemory (MAUDIO); // 600 blocks use about 200 kB (requires Teensy 3.6)
 
   // stop I2S early (to be sure)
   I2S_stop();
@@ -300,7 +310,9 @@ void setup() {
   
   //are we using the eventTrigger?
   if(snipParameters.thresh>=0) mustClose=0; else mustClose=-1;
-  if(mustClose<0) delay1.setDelay(0); else delay1.setDelay(MDEL);
+  #if MDEL>=0
+    if(mustClose<0) delay1.setDelay(0); else delay1.setDelay(MDEL);
+  #endif
   
   // set filename prefix
   uSD.setPrefix(acqParameters.name);
@@ -316,58 +328,65 @@ volatile uint32_t maxValue=0, maxNoise=0; // possibly be updated outside
 
 void loop() {
   // put your main code here, to run repeatedly:
- static int16_t state=0; // 0: open new file, -1: last file
- 
- if(queue1.available())
- {  // have data on que
-    if ((checkDutyCycle(&acqParameters, state))<0)  // this also triggers closing files and hibernating, if planned
+  uint32_t to=0,t1,t2;
+  static uint32_t t3,t4;
+  static int16_t state=0; // 0: open new file, -1: last file
+  if(queue1.available())
+  {  // have data on queue
+    if ((checkDutyCycle(&acqParameters, state))<0) // this also triggers closing files and hibernating, if planned
     { uSD.setClosing();
 //      Serial.println(state);
     }
-   if(state==0)
-   { // generate header before file is opened
-#ifndef GEN_WAV_FILE
-      uint32_t *header=(uint32_t *) headerUpdate();
-      uint32_t *ptr=(uint32_t *) outptr;
-      // copy to disk buffer
-      for(int ii=0;ii<128;ii++) ptr[ii] = header[ii];
-      outptr+=256; //(512 bytes)
-#endif
-      state=1;
-   }
-  // fetch data from queue
-  int32_t * data = (int32_t *)queue1.readBuffer();
-  //
-  // copy to disk buffer
-  uint32_t *ptr=(uint32_t *) outptr;
-  for(int ii=0;ii<64;ii++) ptr[ii] = data[ii];
-  queue1.freeBuffer(); 
-  //
-  // adjust buffer pointer
-  outptr+=128; // (128 shorts)
-  //
-  // if necessary reset buffer pointer and write to disk
-  // buffersize should be always a multiple of 512 bytes
-  if(outptr == (diskBuffer+BUFFERSIZE))
-  {
-    outptr = diskBuffer;
-
-    // write to disk ( this handles also opening of files)
-    // but only if we have detection
-    if((state>=0) && ((snipParameters.thresh<0) || (process1.getSigCount()>0)))
-    {
-      Serial.print(".");
-      state=uSD.write(diskBuffer,BUFFERSIZE); // this is blocking
+    if(state==0)
+    { // generate header before file is opened
+    #ifndef GEN_WAV_FILE // is declased in audio_logger_if.h
+       uint32_t *header=(uint32_t *) headerUpdate();
+       uint32_t *ptr=(uint32_t *) outptr;
+       // copy to disk buffer
+       for(int ii=0;ii<128;ii++) ptr[ii] = header[ii];
+       outptr+=256; //(512 bytes)
+    #endif
+       state=1;
     }
-  }
+    // fetch data from queue
+    int32_t * data = (int32_t *)queue1.readBuffer();
+    //
+    // copy to disk buffer
+    uint32_t *ptr=(uint32_t *) outptr;
+    for(int ii=0;ii<64;ii++) ptr[ii] = data[ii];
+    // release buffer an queue
+    queue1.freeBuffer(); 
+    //
+    // adjust buffer pointer
+    outptr+=128; // (128 shorts)
+    //
+    // if necessary reset buffer pointer and write to disk
+    // buffersize should be always a multiple of 512 bytes
+    if(outptr == (diskBuffer+BUFFERSIZE))
+    {
+      outptr = diskBuffer;
+  
+      // write to disk ( this handles also opening of files)
+      // but only if we have detection
+      if((state>=0) && ((snipParameters.thresh<0) || (process1.getSigCount()>0)))
+      {
+//        Serial.print(".");
+        to=micros();
+        state=uSD.write(diskBuffer,BUFFERSIZE); // this is blocking
+        t1=micros();
+        t2=t1-to;
+        if(t2<t3) t3=t2;
+        if(t2>t4) t4=t2;
+      }
+    }
 //  if(!state) Serial.println("closed");
- }
- else
- {  // queue is empty
-    // are we told to close or running out of time?
+  }
+  else
+  {  // queue is empty
+  // are we told to close or running out of time?
     // if delay is eneabled must wait for delay to pass by
-    if(((mustClose>0) && (process1.getSigCount()< -MDEL)) || 
-       ((mustClose==0) && (checkDutyCycle(&acqParameters, state)<0)))
+    if(((mustClose>0)&& (process1.getSigCount()< -MDEL))
+       || ((mustClose==0) && (checkDutyCycle(&acqParameters, state)<0)))
     { 
       // write remaining data to disk and close file
       if(state>=0)
@@ -381,30 +400,39 @@ void loop() {
       // reset mustClose flag
       if(snipParameters.thresh>=0) mustClose=0; else mustClose=-1;
       Serial.println("file closed");
-
     }
- }
- 
- // some statistics on progress
- static uint32_t loopCount=0;
- static uint32_t t0=0;
- loopCount++;
- if(millis()>t0+1000)
- {  Serial.printf("loop: %5d %4d; %10u %10u %4d %4d %4d %4d; %5d; ",
-          loopCount, uSD.getNbuf(),
-          maxValue, maxNoise, maxValue/maxNoise,
-          process1.getSigCount(),process1.getDetCount(),process1.getNoiseCount(), 
+  }
+
+  // some statistics on progress
+  static uint32_t loopCount=0;
+  static uint32_t t0=0;
+  loopCount++;
+  if(millis()>t0+1000)
+  {  Serial.printf("\tloop: %5d %4d; %5d %5d; %5d; ",
+          loopCount, uSD.getNbuf(), t3,t4, 
           AudioMemoryUsageMax());
+    AudioMemoryUsageMaxReset();
+    t3=1<<31;
+    t4=0;
+  
+  #if MDEL>=0
+     Serial.printf("%4d; %10d %10d %4d; %4d %4d %4d; ",
+            queue1.dropCount, 
+            maxValue, maxNoise, maxValue/maxNoise,
+            process1.getSigCount(),process1.getDetCount(),process1.getNoiseCount());
+            
+      queue1.dropCount=0;
+      process1.resetDetCount();
+      process1.resetNoiseCount();
+  #endif
 
   #if (ACQ==_ADC_0) | (ACQ==_ADC_D) | (ACQ==_ADC_S)
     Serial.printf("%5d %5d",PDB0_CNT, PDB0_MOD);
   #endif
+  
     Serial.println();
-    AudioMemoryUsageMaxReset();
     t0=millis();
     loopCount=0;
-    process1.resetDetCount();
-    process1.resetNoiseCount();
     maxValue=0;
     maxNoise=0;
  }

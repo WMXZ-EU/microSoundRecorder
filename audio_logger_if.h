@@ -22,7 +22,6 @@
 #ifndef _AUDIO_LOGGER_IF_H
 #define _AUDIO_LOGGER_IF_H
 
-#include "kinetis.h"
 #include "core_pins.h"
 
 //==================== local uSD interface ========================================
@@ -30,8 +29,6 @@
 // which needs to be installed as local library 
 //
 #include "SdFs.h"
-
-#define GEN_WAV_FILE
 
 #ifdef GEN_WAV_FILE
   char postfix[5]=".wav";
@@ -51,6 +48,8 @@ const uint64_t PRE_ALLOCATE_SIZE = 40ULL << 20;
 #define BUFFERSIZE (8*1024)
 int16_t diskBuffer[BUFFERSIZE];
 int16_t *outptr = diskBuffer;
+
+char header[512];
 
 class c_uSD
 {
@@ -73,7 +72,7 @@ class c_uSD
     int16_t closing;
 
     char name[8];
-    char buffer[512];
+//    char buffer[512];
     
   public:
   void loadConfig(uint16_t * param1, int n1, int32_t *param2, int n2);
@@ -183,7 +182,6 @@ char *makeFilename(char * prefix)
 
 char * headerUpdate(void)
 {
-	static char header[512];
 	header[0] = 'W'; header[1] = 'M'; header[2] = 'X'; header[3] = 'Z';
 	
 	struct tm tx = seconds2tm(RTC_TSR);
@@ -251,6 +249,9 @@ int16_t c_uSD::write(int16_t *data, int32_t ndat)
     if (!file.preAllocate(PRE_ALLOCATE_SIZE)) 
     { sd.errorHalt("file.preAllocate failed");    
     }
+    #ifdef  GEN_WAV_FILE // keep first record
+          memcpy(header,(const char *)data,512);
+    #endif
     state=1; // flag that file is open
     nbuf=0;
   }
@@ -275,11 +276,11 @@ int16_t c_uSD::close(void)
     file.truncate();
     #ifdef GEN_WAV_FILE
       uint32_t fileSize = file.size();
+//      file.seek(0);
+//      file.read(buffer,512);
+      memcpy(header,wavHeader(fileSize),44);
       file.seek(0);
-      file.read(buffer,512);
-      memcpy(buffer,wavHeader(fileSize),44);
-      file.seek(0);
-      file.write(buffer,512);
+      file.write(header,512);
       file.seek(fileSize);
     #endif
     file.close();

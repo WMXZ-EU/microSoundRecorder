@@ -176,10 +176,10 @@ int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
   uint32_t nsec;
   if (doRecording) // we can record
   {
-    if(flag>=0) // we are recording
-    { if( flag==0 )  // new file
-      { if(!recording) {t_rec=tt; recording=1;} 
-        t_start = tt;
+    if(flag>=0) // we are indeed still recording
+    { if( flag==0 )  // file is closed new file
+      { if(!recording) {t_rec=tt; recording=1;} // this is for first file in aquisition
+        t_start = tt; // beginning of each file
       }
       uint16_t t_on = acqParameters->on;
       uint16_t t_dur = acqParameters->ad;
@@ -210,30 +210,33 @@ int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
          return 1;
     }
   }
-  //
-  // should we be sleeping?
-  uint32_t tto= tt%(24*3600); // seconds since midnight
-  nsec=0;
-  // estimate next start time
-  if ((to >= T2) && (to<T3))	// sleep during the day
-  { if(tto<T3*3600) 
-    nsec = T3 * 3600 - tto;
-  }
-  if ((tto<((T1+24) * 3600)) && (T4 > T1) && ((to >= T4) || to < T1)) // sleep over midnight
-  {  nsec = (T1+24) * 3600 - tto;
-  }
-  if ((tto< (T1 * 3600)) && (T3 > T4) && ((to >= T4) || to < T1)) // sleep after midnight
-  {  nsec = T1 * 3600 - tto;
-  }
-
-  #define SLEEP_SHORT
-  #ifdef SLEEP_SHORT
-    if (nsec>acqParameters->on) nsec=acqParameters->on;
-  #endif
+  else
+  {
+    uint32_t tto= tt%(24*3600); // seconds since midnight
+    nsec=0;
+    // estimate next start time
+    if ((to >= T2) && (to<T3))  // sleep during the day  //eg: to=10: T1=4; T2=9; T3=16; T4=20
+    { if(tto < T3 * 3600) 
+      nsec = T3 * 3600 - tto;
+    }
+    //
+    if((to>=T4) && (T4>T1)) // sleep over midnight to T1 //eg: to=21: T1=4; T2=9; T3=16; T4=20
+    {  nsec = (T1+24) * 3600 - tto;
+    }
+    //
+    if(to<T1)                                            //eg: to=2:  T1=4; T2=9; T3=16; T4=20
+    { nsec = T1 * 3600 - tto;
+    }
   
-  if(nsec>0) setWakeupCallandSleep(nsec);
+    #define SLEEP_SHORT
+    #ifdef SLEEP_SHORT
+      if (nsec>acqParameters->on) nsec=acqParameters->on;
+    #endif
     
-  return 0;
+    if(nsec>0) setWakeupCallandSleep(nsec);
+      
+    return 0;
+  }
 }
 
 #endif
