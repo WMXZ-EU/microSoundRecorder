@@ -299,7 +299,7 @@ void c_uSD::storeConfig(uint16_t * param1, int n1, int32_t *param2, int n2)
   for(int ii=0; ii<n2; ii++)
   { sprintf(text,"%10d\r\n",param2[ii]); file.write((uint8_t*)text,strlen(text));
   }
-  sprintf(text,"%s\r\n",(char*) &param1[7]);
+  sprintf(text,"%s\r\n",(char*) &param1[n1]);
   file.write((uint8_t *)text,6);
 
   file.close();
@@ -312,14 +312,15 @@ void c_uSD::loadConfig(uint16_t * param1, int n1, int32_t *param2, int n2)
   if(!file.open("Config.txt",O_RDONLY)) return;
   //
   for(int ii=0; ii<n1; ii++)
-  { file.read((uint8_t*)text,12); sscanf(text,"%d",&param1[ii]);
+  { if(file.read((uint8_t*)text,12)); sscanf(text,"%d",&param1[ii]);
   }
   for(int ii=0; ii<n2; ii++)
-  { file.read((uint8_t*)text,12); sscanf(text,"%d",&param2[ii]);
+  { if(file.read((uint8_t*)text,12)); sscanf(text,"%d",&param2[ii]);
   }
-  file.read((uint8_t *)text,6);text[5]=0;
-  sscanf(text,"%s",(char *) &param1[7]);
-  
+  if(file.read((uint8_t *)text,6))
+  { text[5]=0;
+    sscanf(text,"%s",(char *) &param1[n1]);
+  }  
   file.close();
 }
 

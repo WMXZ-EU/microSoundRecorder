@@ -91,7 +91,8 @@ static void setTime(uint16_t hour, uint16_t minutes, uint16_t seconds)
 ? m\n:  extr;       // min extraction window
 ? i\n:  inhib;      // guard window (inhibit follow-on secondary detections)
 ? k\n:  nrep;       // noise only interval (nrep =0  indicates no noise archiving)
- */
+? p\n:  ndel;       // pre-trigger delay 
+*/
 char text[32]; // neded for text operations
 
 extern ACQ_Parameters_s acqParameters;
@@ -107,7 +108,7 @@ static void printAll(void)
   Serial.printf("%c %5d third_hour\n\r",  '3',acqParameters.T3);
   Serial.printf("%c %5d last_hour\n\r",   '4',acqParameters.T4);
   Serial.println();
-//  Serial.printf("%c %s name\n\r",         'n',acqParameters.name);
+  Serial.printf("%c %s name\n\r",         'n',acqParameters.name);
   Serial.printf("%c %s date\n\r",         'd',getDate(text));
   Serial.printf("%c %s time\n\r",         't',getTime(text));
   Serial.println();
@@ -117,12 +118,13 @@ static void printAll(void)
   Serial.printf("%c %5d extraction window\r\n",     'm',snipParameters.extr);
   Serial.printf("%c %5d inhibit window\r\n",        'i',snipParameters.inhib);
   Serial.printf("%c %5d noise repetition rate\r\n", 'k',snipParameters.nrep);
+  Serial.printf("%c %5d pre trigger delay\r\n",     'p',snipParameters.ndel);
   //
   Serial.println();
   Serial.println("exter 'a' to print this");
-  Serial.println("exter '?c' to read value c=(o,a,r,1,2,3,4,n,d,t,h,w,s,m,i,k)");
+  Serial.println("exter '?c' to read value c=(o,a,r,1,2,3,4,n,d,t,h,w,s,m,i,k,p)");
   Serial.println("  e.g.: ?1 will print first hour");
-  Serial.println("exter '!cval' to read value c=(g,p,r,1,2,3,4,n,d,t,h,w,s,m,i,k) and val is new value");
+  Serial.println("exter '!cval' to read value c=(0,a,r,1,2,3,4,n,d,t,h,w,s,m,i,k,p) and val is new value");
   Serial.println("  e.g.: !110 will set first hour to 10");
   Serial.println("exter 'xval' to exit menu (x is delay in minutes, -1 means immediate)");
   Serial.println("  e.g.: x10 will exit and hibernate for 10 minutes");
@@ -135,7 +137,7 @@ static void doMenu1(void)
     while(!Serial.available());
     char c=Serial.read();
     
-    if (strchr("oar1234ndthwsmik", c))
+    if (strchr("oar1234ndthwsmikp", c))
     { switch (c)
       {
         case 'o': Serial.printf("%02d\r\n",acqParameters.on); break;
@@ -154,6 +156,7 @@ static void doMenu1(void)
         case 'm': Serial.printf("%04d\r\n",snipParameters.extr);break;
         case 'i': Serial.printf("%04d\r\n",snipParameters.inhib);break;
         case 'k': Serial.printf("%04d\r\n",snipParameters.nrep);break;
+        case 'p': Serial.printf("%04d\r\n",snipParameters.ndel);break;
       }
     }
 }
@@ -178,6 +181,7 @@ static void doMenu1(void)
 ! m val\n:  extr;       // min extraction window
 ! i val\n:  inhib;      // guard window (inhibit follow-on secondary detections)
 ! k val\n:  nrep;       // noise only interval (nrep =0  indicates no noise archiving)
+! p val\n:  ndel;       // pre-trigger delay 
  */
 
 static void doMenu2(void)
@@ -186,7 +190,7 @@ static void doMenu2(void)
     char c=Serial.read();
     uint16_t year,month,day,hour,minutes,seconds;
     
-    if (strchr("oar1234ndthwsmik", c))
+    if (strchr("oar1234ndthwsmikp", c))
     { switch (c)
       {
         case 'o': acqParameters.on  =Serial.parseInt(); break;
@@ -217,6 +221,8 @@ static void doMenu2(void)
         case 'm': snipParameters.extr = Serial.parseInt(); break;
         case 'i': snipParameters.inhib = Serial.parseInt(); break;
         case 'k': snipParameters.nrep = Serial.parseInt(); break;
+        case 'p': snipParameters.ndel = Serial.parseInt(); 
+                  if(snipParameters.ndel>MDEL) snipParameters.ndel=MDEL; break;
       }
     }  
 }

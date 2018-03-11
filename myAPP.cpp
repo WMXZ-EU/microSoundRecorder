@@ -117,9 +117,10 @@ typedef struct
    int32_t extr;       // min extraction window
    int32_t inhib;      // guard window (inhibit follow-on secondary detections)
    int32_t nrep;       // noise only interval (nrep =0  indicates no noise archiving)
+   int32_t ndel;        // pre trigger delay (in units of audio blocks)
 } SNIP_Parameters_s; 
 
-SNIP_Parameters_s snipParameters = { 1<<10, 1000, 10000, 3750, 375, 0 };
+SNIP_Parameters_s snipParameters = { 1<<10, 1000, 10000, 3750, 375, 0, MDEL};
 
 //==================== Audio interface ========================================
 /*
@@ -277,14 +278,14 @@ void setup() {
   uSD.init();
 
   // load config allways first
-  uSD.loadConfig((uint16_t *)&acqParameters, 7, (int32_t *)&snipParameters, 6);
+  uSD.loadConfig((uint16_t *)&acqParameters, 7, (int32_t *)&snipParameters, 7);
   
   // if pin3 is connected to GND enter menu mode
   int ret;
   if(!digitalReadFast(3))
   { ret=doMenu();
     // should here save parameters to disk if modified
-    uSD.storeConfig((uint16_t *)&acqParameters, 7, (int32_t *)&snipParameters, 6);
+    uSD.storeConfig((uint16_t *)&acqParameters, 7, (int32_t *)&snipParameters, 7);
   }
   //
   // check if it is our time to record
