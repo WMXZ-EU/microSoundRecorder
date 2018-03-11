@@ -17,7 +17,10 @@ The I2S_32 mode allows an improved acquisiton of 24 bit MEMS microphones
 - audio-triggered archiving
 - single file / event archiving
 - variable pre-trigger
+- startup menu
 
 ## planned
-- startup menu
 - data offload option
+
+## caveat
+this is still in development
