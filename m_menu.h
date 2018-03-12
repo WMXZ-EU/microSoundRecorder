@@ -160,7 +160,41 @@ static void doMenu1(void)
       }
     }
 }
-
+#define MAX_VAL 1<<17 // maimal input value
+int boundaryCheck(int val, int minVal, int maxVal)
+{
+  if(minVal < maxVal) // standard case
+  {
+    if(val<minVal) val=minVal;
+    if(val>maxVal) val=maxVal;
+  }
+  else // wrap around when checking hours
+  {
+    if((val>maxVal) && (val<minVal)) val=maxVal;
+    if((val>24)) val=24;
+  }
+  return val; 
+}
+int boundaryCheck2(int val, int minVal, int maxVal, int modVal)
+{
+  if(minVal < maxVal) // standard case
+  {
+    if(val<minVal) val=minVal;
+    if(val>maxVal) val=maxVal;
+  }
+  else // wrap around when checking hours
+  {
+    Serial.printf("%d < %d < %d\r\n",maxVal,val,minVal);
+    if((val>maxVal) && (val<minVal))
+    { Serial.printf("%d < %d < %d\r\n",maxVal,val,minVal);
+      if(val>(minVal+maxVal)/2) val = minVal; else val=maxVal;
+    }
+    if(val<0) val=0;
+    if(val>modVal) val=modVal;
+    Serial.println(val);
+  }
+  return val; 
+}
 /*
 ! o val\n:       ESM_Logger sets "on_time" value 
 ! a val\n:       ESM_Logger sets "acq_time" value
@@ -189,40 +223,42 @@ static void doMenu2(void)
     while(!Serial.available());
     char c=Serial.read();
     uint16_t year,month,day,hour,minutes,seconds;
-    
+    int T1=acqParameters.T1;
+    int T2=acqParameters.T2;
+    int T3=acqParameters.T3;
+    int T4=acqParameters.T4;
+        
     if (strchr("oar1234ndthwsmikp", c))
     { switch (c)
-      {
-        case 'o': acqParameters.on  =Serial.parseInt(); break;
-        case 'a': acqParameters.ad  =Serial.parseInt(); break;
-        case 'r': acqParameters.ar  =Serial.parseInt(); break;
-        case '1': acqParameters.T1  =Serial.parseInt();break;
-        case '2': acqParameters.T2  =Serial.parseInt();break;
-        case '3': acqParameters.T3  =Serial.parseInt();break;
-        case '4': acqParameters.T4  =Serial.parseInt();break;
+      { case 'o': acqParameters.on   = boundaryCheck(Serial.parseInt(),0,MAX_VAL); break;
+        case 'a': acqParameters.ad   = boundaryCheck(Serial.parseInt(),0,MAX_VAL); break;
+        case 'r': acqParameters.ar   = boundaryCheck(Serial.parseInt(),0,MAX_VAL); break;
+        case '1': acqParameters.T1   = boundaryCheck(Serial.parseInt(),0,24); break;
+        case '2': acqParameters.T2   = boundaryCheck(Serial.parseInt(),T1,24); break;
+        case '3': acqParameters.T3   = boundaryCheck(Serial.parseInt(),T2,24); break;
+        case '4': acqParameters.T4   = boundaryCheck2(Serial.parseInt(),T3,T1,24); break;
         case 'n': for(int ii=0; ii<4;ii++) acqParameters.name[ii] = Serial.read();
                   acqParameters.name[4]=0; break;
         case 'd':     
-                  year= Serial.parseInt();
-                  month= Serial.parseInt();
-                  day= Serial.parseInt();
+                  year=   boundaryCheck(Serial.parseInt(),2000,3000);
+                  month=  boundaryCheck(Serial.parseInt(),1,12);
+                  day=    boundaryCheck(Serial.parseInt(),1,31);
                   setDate(year,month,day);
                   break;
         case 't': 
-                  hour= Serial.parseInt();
-                  minutes= Serial.parseInt();
-                  seconds= Serial.parseInt();
+                  hour=     boundaryCheck(Serial.parseInt(),0,23);
+                  minutes=  boundaryCheck(Serial.parseInt(),0,59);
+                  seconds=  boundaryCheck(Serial.parseInt(),0,59);
                   setTime(hour,minutes,seconds);
                   break;
         //
-        case 'h': snipParameters.thresh = Serial.parseInt(); break;
-        case 'w': snipParameters.win0 = Serial.parseInt(); break;
-        case 's': snipParameters.win1 = Serial.parseInt(); break;
-        case 'm': snipParameters.extr = Serial.parseInt(); break;
-        case 'i': snipParameters.inhib = Serial.parseInt(); break;
-        case 'k': snipParameters.nrep = Serial.parseInt(); break;
-        case 'p': snipParameters.ndel = Serial.parseInt(); 
-                  if(snipParameters.ndel>MDEL) snipParameters.ndel=MDEL; break;
+        case 'h': snipParameters.thresh = boundaryCheck(Serial.parseInt(),-1,MAX_VAL); break;
+        case 'w': snipParameters.win0   = boundaryCheck(Serial.parseInt(),0,MAX_VAL); break;
+        case 's': snipParameters.win1   = boundaryCheck(Serial.parseInt(),0,MAX_VAL); break;
+        case 'm': snipParameters.extr   = boundaryCheck(Serial.parseInt(),0,MAX_VAL); break;
+        case 'i': snipParameters.inhib  = boundaryCheck(Serial.parseInt(),0,MAX_VAL); break;
+        case 'k': snipParameters.nrep   = boundaryCheck(Serial.parseInt(),0,MAX_VAL); break;
+        case 'p': snipParameters.ndel   = boundaryCheck(Serial.parseInt(),0,MDEL); break;
       }
     }  
 }
