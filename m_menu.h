@@ -14,7 +14,8 @@ typedef struct
 
 /*
 typedef struct
-{  int32_t thresh;     // power SNR for snippet detection
+{  int32_t iproc;      // type of detection rocessor (0: hihg-pass-rheshold; 1: Taeger-Kaiser-Operator)
+   int32_t thresh;     // power SNR for snippet detection
    int32_t win0;       // noise estimation window (in units of audio blocks)
    int32_t win1;       // detection watchdog window (in units of audio blocks typicaly 10x win0)
    int32_t extr;       // min extraction window
@@ -85,10 +86,11 @@ static void setTime(uint16_t hour, uint16_t minutes, uint16_t seconds)
 ? t\n:  ESM_Logger reports time
 */
 /*
+? c\n:  iproc;      // Processot type
 ? h\n:  thresh;     // power SNR for snippet detection
 ? w\n:  win0;       // noise estimation window (in units of audio blocks)
 ? s\n:  win1;       // (slow) detection watchdog window (in units of audio blocks typicaly 10x win0)
-? m\n:  extr;       // min extraction window
+? e\n:  extr;       // min extraction window
 ? i\n:  inhib;      // guard window (inhibit follow-on secondary detections)
 ? k\n:  nrep;       // noise only interval (nrep =0  indicates no noise archiving)
 ? p\n:  ndel;       // pre-trigger delay 
@@ -112,19 +114,20 @@ static void printAll(void)
   Serial.printf("%c %s date\n\r",         'd',getDate(text));
   Serial.printf("%c %s time\n\r",         't',getTime(text));
   Serial.println();
+  Serial.printf("%c %5d processing type\r\n",       'c',snipParameters.iproc);
   Serial.printf("%c %5d threshold\r\n",             'h',snipParameters.thresh);
   Serial.printf("%c %5d noise window\r\n",          'w',snipParameters.win0);
   Serial.printf("%c %5d slow window\r\n",           's',snipParameters.win1);
-  Serial.printf("%c %5d extraction window\r\n",     'm',snipParameters.extr);
+  Serial.printf("%c %5d extraction window\r\n",     'e',snipParameters.extr);
   Serial.printf("%c %5d inhibit window\r\n",        'i',snipParameters.inhib);
   Serial.printf("%c %5d noise repetition rate\r\n", 'k',snipParameters.nrep);
   Serial.printf("%c %5d pre trigger delay\r\n",     'p',snipParameters.ndel);
   //
   Serial.println();
   Serial.println("exter 'a' to print this");
-  Serial.println("exter '?c' to read value c=(o,a,r,1,2,3,4,n,d,t,h,w,s,m,i,k,p)");
+  Serial.println("exter '?c' to read value c=(o,a,r,1,2,3,4,n,d,t,c,h,w,s,m,i,k,p)");
   Serial.println("  e.g.: ?1 will print first hour");
-  Serial.println("exter '!cval' to read value c=(0,a,r,1,2,3,4,n,d,t,h,w,s,m,i,k,p) and val is new value");
+  Serial.println("exter '!cval' to read value c=(0,a,r,1,2,3,4,n,d,t,c,h,w,s,m,i,k,p) and val is new value");
   Serial.println("  e.g.: !110 will set first hour to 10");
   Serial.println("exter 'xval' to exit menu (x is delay in minutes, -1 means immediate)");
   Serial.println("  e.g.: x10 will exit and hibernate for 10 minutes");
@@ -137,7 +140,7 @@ static void doMenu1(void)
     while(!Serial.available());
     char c=Serial.read();
     
-    if (strchr("oar1234ndthwsmikp", c))
+    if (strchr("oar1234ndtchwseikp", c))
     { switch (c)
       {
         case 'o': Serial.printf("%02d\r\n",acqParameters.on); break;
@@ -148,12 +151,15 @@ static void doMenu1(void)
         case '3': Serial.printf("%02d\r\n",acqParameters.T3);break;
         case '4': Serial.printf("%02d\r\n",acqParameters.T4);break;
         case 'n': Serial.printf("%s\r\n",acqParameters.name);break; 
+        
         case 'd': Serial.printf("%s\r\n",getDate(text));break;
         case 't': Serial.printf("%s\r\n",getTime(text));break;
+        
+        case 'c': Serial.printf("%04d\r\n",snipParameters.iproc);break;
         case 'h': Serial.printf("%04d\r\n",snipParameters.thresh);break;
         case 'w': Serial.printf("%04d\r\n",snipParameters.win0);break;
         case 's': Serial.printf("%04d\r\n",snipParameters.win1);break;
-        case 'm': Serial.printf("%04d\r\n",snipParameters.extr);break;
+        case 'e': Serial.printf("%04d\r\n",snipParameters.extr);break;
         case 'i': Serial.printf("%04d\r\n",snipParameters.inhib);break;
         case 'k': Serial.printf("%04d\r\n",snipParameters.nrep);break;
         case 'p': Serial.printf("%04d\r\n",snipParameters.ndel);break;
@@ -184,14 +190,12 @@ int boundaryCheck2(int val, int minVal, int maxVal, int modVal)
   }
   else // wrap around when checking hours
   {
-    Serial.printf("%d < %d < %d\r\n",maxVal,val,minVal);
-    if((val>maxVal) && (val<minVal))
-    { Serial.printf("%d < %d < %d\r\n",maxVal,val,minVal);
-      if(val>(minVal+maxVal)/2) val = minVal; else val=maxVal;
-    }
     if(val<0) val=0;
     if(val>modVal) val=modVal;
-    Serial.println(val);
+    // shift data to next good value
+    if((val>maxVal) && (val<minVal))
+    { if(val>(minVal+maxVal)/2) val = minVal; else val=maxVal;
+    }
   }
   return val; 
 }
@@ -209,10 +213,11 @@ int boundaryCheck2(int val, int minVal, int maxVal, int modVal)
 ! x delay\n      ESM_Logger exits menu and hibernates for the amount given in delay
 */
 /*
+! c val\n:  iproc;      // Processot type
 ! h val\n:  thresh;     // power SNR for snippet detection
 ! w val\n:  win0;       // noise estimation window (in units of audio blocks)
 ! s val\n:  win1;       // (slow) detection watchdog window (in units of audio blocks typicaly 10x win0)
-! m val\n:  extr;       // min extraction window
+! e val\n:  extr;       // min extraction window
 ! i val\n:  inhib;      // guard window (inhibit follow-on secondary detections)
 ! k val\n:  nrep;       // noise only interval (nrep =0  indicates no noise archiving)
 ! p val\n:  ndel;       // pre-trigger delay 
@@ -220,15 +225,16 @@ int boundaryCheck2(int val, int minVal, int maxVal, int modVal)
 
 static void doMenu2(void)
 { // for settings
-    while(!Serial.available());
-    char c=Serial.read();
     uint16_t year,month,day,hour,minutes,seconds;
     int T1=acqParameters.T1;
     int T2=acqParameters.T2;
     int T3=acqParameters.T3;
     int T4=acqParameters.T4;
+    //
+    while(!Serial.available());
+    char c=Serial.read();
         
-    if (strchr("oar1234ndthwsmikp", c))
+    if (strchr("oar1234ndtchwseikp", c))
     { switch (c)
       { case 'o': acqParameters.on   = boundaryCheck(Serial.parseInt(),0,MAX_VAL); break;
         case 'a': acqParameters.ad   = boundaryCheck(Serial.parseInt(),0,MAX_VAL); break;
@@ -252,10 +258,11 @@ static void doMenu2(void)
                   setTime(hour,minutes,seconds);
                   break;
         //
+        case 'c': snipParameters.iproc  = boundaryCheck(Serial.parseInt(),0,1); break;
         case 'h': snipParameters.thresh = boundaryCheck(Serial.parseInt(),-1,MAX_VAL); break;
         case 'w': snipParameters.win0   = boundaryCheck(Serial.parseInt(),0,MAX_VAL); break;
         case 's': snipParameters.win1   = boundaryCheck(Serial.parseInt(),0,MAX_VAL); break;
-        case 'm': snipParameters.extr   = boundaryCheck(Serial.parseInt(),0,MAX_VAL); break;
+        case 'e': snipParameters.extr   = boundaryCheck(Serial.parseInt(),0,MAX_VAL); break;
         case 'i': snipParameters.inhib  = boundaryCheck(Serial.parseInt(),0,MAX_VAL); break;
         case 'k': snipParameters.nrep   = boundaryCheck(Serial.parseInt(),0,MAX_VAL); break;
         case 'p': snipParameters.ndel   = boundaryCheck(Serial.parseInt(),0,MDEL); break;

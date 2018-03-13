@@ -111,7 +111,8 @@ int16_t mustClose = -1;// initial value (can be -1: ignore event trigger or 0: i
 
 // snippet extraction modul
 typedef struct
-{  int32_t thresh;     // power SNR for snippet detection (-1: disable snippet extraction)
+{  int32_t iproc;      // type of detection rocessor (0: hihg-pass-rheshold; 1: Taeger-Kaiser-Operator)
+   int32_t thresh;     // power SNR for snippet detection (-1: disable snippet extraction)
    int32_t win0;       // noise estimation window (in units of audio blocks)
    int32_t win1;       // detection watchdog window (in units of audio blocks typicaly 10x win0)
    int32_t extr;       // min extraction window
@@ -120,7 +121,7 @@ typedef struct
    int32_t ndel;        // pre trigger delay (in units of audio blocks)
 } SNIP_Parameters_s; 
 
-SNIP_Parameters_s snipParameters = { 1<<10, 1000, 10000, 3750, 375, 0, MDEL};
+SNIP_Parameters_s snipParameters = { 0, 1<<10, 1000, 10000, 3750, 375, 0, MDEL};
 
 //==================== Audio interface ========================================
 /*
@@ -278,14 +279,14 @@ void setup() {
   uSD.init();
 
   // load config allways first
-  uSD.loadConfig((uint16_t *)&acqParameters, 7, (int32_t *)&snipParameters, 7);
+  uSD.loadConfig((uint16_t *)&acqParameters, 7, (int32_t *)&snipParameters, 8);
   
   // if pin3 is connected to GND enter menu mode
   int ret;
   if(!digitalReadFast(3))
   { ret=doMenu();
     // should here save parameters to disk if modified
-    uSD.storeConfig((uint16_t *)&acqParameters, 7, (int32_t *)&snipParameters, 7);
+    uSD.storeConfig((uint16_t *)&acqParameters, 7, (int32_t *)&snipParameters, 8);
   }
   //
   // check if it is our time to record
