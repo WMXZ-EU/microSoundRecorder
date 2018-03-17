@@ -75,8 +75,8 @@ class c_uSD
 //    char buffer[512];
     
   public:
-  void loadConfig(uint16_t * param1, int n1, int32_t *param2, int n2);
-  void storeConfig(uint16_t * param1, int n1, int32_t *param2, int n2);
+  void loadConfig(uint32_t * param1, int n1, int32_t *param2, int n2);
+  void storeConfig(uint32_t * param1, int n1, int32_t *param2, int n2);
 
 };
 c_uSD uSD;
@@ -289,7 +289,7 @@ int16_t c_uSD::close(void)
     return state;
 }
 
-void c_uSD::storeConfig(uint16_t * param1, int n1, int32_t *param2, int n2)
+void c_uSD::storeConfig(uint32_t * param1, int n1, int32_t *param2, int n2)
 { char text[32];
   file.open("Config.txt", O_CREAT|O_WRITE|O_TRUNC);
   for(int ii=0; ii<n1; ii++)
@@ -306,7 +306,7 @@ void c_uSD::storeConfig(uint16_t * param1, int n1, int32_t *param2, int n2)
   
 }
 
-void c_uSD::loadConfig(uint16_t * param1, int n1, int32_t *param2, int n2)
+void c_uSD::loadConfig(uint32_t * param1, int n1, int32_t *param2, int n2)
 {
   char text[32];
   if(!file.open("Config.txt",O_RDONLY)) return;

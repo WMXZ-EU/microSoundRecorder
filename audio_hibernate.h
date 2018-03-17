@@ -150,9 +150,10 @@ void setWakeupCallandSleep(uint32_t nsec)
 
 /***********************************************************************************************/
 // flag can be 0 file to be open // time to shutdown if required
+#define SLEEP_SHORT
+#define ShortSleepDuration 60   
 int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
-{	static uint32_t t_rec = 0;    // start of recording
-	static uint32_t t_start = 0;  // start of actual file
+{	static uint32_t t_start = 0;  // start of actual file
   static uint16_t recording = 0;  // acquisition has started
 
   uint32_t tt=RTC_TSR;
@@ -173,41 +174,67 @@ int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
   else		// e.g. 3-4, 23-24
     doRecording = (((to>=T1) && (to<T2)) || ((to>=T3) && (to<T4)));
 
-  uint32_t nsec;
+  uint32_t nsec=0;
   if (doRecording) // we can record
   {
-    if(flag>=0) // we are indeed still recording
-    { if( flag==0 )  // file is closed new file
-      { if(!recording) {t_rec=tt; recording=1;} // this is for first file in aquisition
-        t_start = tt; // beginning of each file
-      }
       uint16_t t_on = acqParameters->on;
       uint16_t t_dur = acqParameters->ad;
       uint16_t t_rep = acqParameters->ar;
-
-      if ((t_rep>t_on) && (tt >= t_rec + t_on))
-      { // need to stop
-        if (flag == 0) // acquisition is closed, shut down 
-        {
-          nsec = (t_rec + t_rep - tt);
-          Serial.println(nsec); 
-          Serial.println("Hibernate now");
-          if(nsec>0) setWakeupCallandSleep(nsec);
-          Serial.println("Error"); 
-          return 0; // will not happen, but keep compiler happy
-        }
-        return -1; // flag to close acquisition
-      }
-      //
-      if (tt >= t_start + t_dur)
+      uint32_t t_rec = acqParameters->rec;
+      
+    if(flag>=0)
+    { 
+      if((flag>0) && (tt >= t_start + t_dur)) //we are indeed still recording
       { // need to close file
         Serial.println(tt-t_start-t_dur);
         Serial.println("close acquisition");
         t_start = tt; // update start time for next file
         return -1; // flag to close acquisition
       }
-       else
-         return 1;
+      
+      if( flag==0 )  // file is closed new file
+      { 
+        if(!recording) // we are at the beginning of an acquisition cycle
+        {
+          { t_rec=tt; 
+            acqParameters->rec=t_rec;
+            recording=1; 
+          } 
+          // the following is for each new file
+          t_start = tt; // beginning of each file
+        }
+        else
+        // check is we end equisition cycle
+        if ((t_rep>t_on) && (tt >= t_rec + t_on))
+        { // need to stop
+          nsec = (t_rec + t_rep - tt);
+          #ifdef SLEEP_SHORT
+            if(nsec>ShortSleepDuration) nsec=ShortSleepDuration;
+          #endif
+          Serial.println(nsec); 
+          Serial.println("Hibernate now 1");
+//          if(nsec>0) setWakeupCallandSleep(nsec);
+          return nsec; 
+        }
+      }
+    }
+    else // initial check during setup
+    {
+          // check if this is simply wakeup
+          if((tt>t_rec+t_on) && (tt < t_rec+t_rep))
+          {
+            nsec = (t_rec+t_rep-tt);
+            #ifdef SLEEP_SHORT
+              if(nsec>ShortSleepDuration) nsec=ShortSleepDuration;
+            #endif
+            Serial.println(t_rec); 
+            Serial.println(t_rep); 
+            Serial.println(t_on); 
+            Serial.println(nsec); 
+            Serial.println("Hibernate now 2");
+//            if(nsec>0) setWakeupCallandSleep(nsec);
+            return nsec; 
+          }
     }
   }
   else
@@ -228,15 +255,17 @@ int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
     { nsec = T1 * 3600 - tto;
     }
   
-    #define SLEEP_SHORT
     #ifdef SLEEP_SHORT
-      if (nsec>acqParameters->on) nsec=acqParameters->on;
+            if(nsec>ShortSleepDuration) nsec=ShortSleepDuration;
     #endif
     
-    if(nsec>0) setWakeupCallandSleep(nsec);
+    Serial.println(nsec); 
+    Serial.println("Hibernate now 3");
+//    if(nsec>0) setWakeupCallandSleep(nsec);
       
-    return 0;
+    return nsec;
   }
+  return 0;
 }
 
 #endif

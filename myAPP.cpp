@@ -80,12 +80,13 @@
 // some structures to be used for controllong acquisition
 // scheduled acquisition
 typedef struct
-{	uint16_t on;	// acquisition on time in seconds
-	uint16_t ad;	// acquisition file size in seconds
-	uint16_t ar;	// acquisition rate, i.e. every ar seconds (if < on then continuous acqisition)
-	uint16_t T1,T2; // first aquisition window (from T1 to T2) in Hours of day
-	uint16_t T3,T4; // second aquisition window (from T1 to T2) in Hours of day
-  char name[5];   // prefix for recorder file names
+{	uint32_t on;	// acquisition on time in seconds
+	uint32_t ad;	// acquisition file size in seconds
+	uint32_t ar;	// acquisition rate, i.e. every ar seconds (if < on then continuous acqisition)
+	uint32_t T1,T2; // first aquisition window (from T1 to T2) in Hours of day
+	uint32_t T3,T4; // second aquisition window (from T1 to T2) in Hours of day
+  uint32_t rec;  // time when secording started
+  char name[8];   // prefix for recorder file names
 } ACQ_Parameters_s;
 
 // T1 to T3 are increasing hours, T4 can be before or after midnight
@@ -93,13 +94,13 @@ typedef struct
 // if "ar" > "on" the do dutycycle, i.e.sleep between on and ar seconds
 //
 // Example
-// ACQ_Parameters_s acqParameters = {120, 60, 180, 0, 12, 12, 24, "WMXZ"};
+// ACQ_Parameters_s acqParameters = {120, 60, 180, 0, 12, 12, 24, 0, "WMXZ"};
 //  acquire 2 files each 60 s long (totalling 120 s)
 //  sleep for 60 s (to reach 180 s acquisition interval)
 //  acquire whole day (from midnight to noon and noot to midnight)
 //
 
-ACQ_Parameters_s acqParameters = { 120, 60, 100, 0, 12, 12, 24, "WMXZ"};
+ACQ_Parameters_s acqParameters = { 120, 60, 100, 0, 12, 12, 24, 0, "WMXZ"};
 
 // the following global variable may be set from anywhere
 // if one wanted to close file immedately
@@ -256,6 +257,8 @@ extern void rtc_set(unsigned long t);
 
 #include "m_menu.h"
 void setup() {
+  int16_t nsec;
+  //
   // put your setup code here, to run once:
   pinMode(3,INPUT_PULLUP); // needed to enter menu if grounded
 
@@ -279,18 +282,19 @@ void setup() {
   uSD.init();
 
   // load config allways first
-  uSD.loadConfig((uint16_t *)&acqParameters, 7, (int32_t *)&snipParameters, 8);
-  
+  uSD.loadConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
+
   // if pin3 is connected to GND enter menu mode
   int ret;
   if(!digitalReadFast(3))
   { ret=doMenu();
     // should here save parameters to disk if modified
-    uSD.storeConfig((uint16_t *)&acqParameters, 7, (int32_t *)&snipParameters, 8);
+    uSD.storeConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
   }
   //
   // check if it is our time to record
-  checkDutyCycle(&acqParameters, -1); // will not return if if sould not continue with acquisition 
+  nsec=checkDutyCycle(&acqParameters, -1);
+  if(nsec>0) setWakeupCallandSleep(nsec); // will not return if we should not continue with acquisition 
 
   // Now modify objects from audio library
   #if (ACQ == _ADC_0) | (ACQ == _ADC_D) | (ACQ == _ADC_S)
@@ -330,15 +334,16 @@ volatile uint32_t maxValue=0, maxNoise=0; // possibly be updated outside
 
 void loop() {
   // put your main code here, to run repeatedly:
+  int16_t nsec;
   uint32_t to=0,t1,t2;
   static uint32_t t3,t4;
   static int16_t state=0; // 0: open new file, -1: last file
   if(queue1.available())
-  {  // have data on queue
-    if ((checkDutyCycle(&acqParameters, state))<0) // this also triggers closing files and hibernating, if planned
-    { uSD.setClosing();
-//      Serial.println(state);
-    }
+  { // have data on queue
+    nsec=checkDutyCycle(&acqParameters, state);
+    if(nsec<0) {Serial.println("A"); uSD.setClosing();} // this will be last record in file
+    if(nsec>0) {Serial.printf("B %d %d\r\n",state, nsec); setWakeupCallandSleep(nsec);} // file closed sleep now
+    //
     if(state==0)
     { // generate header before file is opened
     #ifndef GEN_WAV_FILE // is declased in audio_logger_if.h
@@ -381,7 +386,10 @@ void loop() {
         if(t2>t4) t4=t2;
       }
     }
-//  if(!state) Serial.println("closed");
+    if(!state)
+    { Serial.println("closed");
+      uSD.storeConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
+    }
   }
   else
   {  // queue is empty
@@ -395,7 +403,8 @@ void loop() {
       { uint32_t nbuf = (uint32_t)(outptr-diskBuffer);
 //        Serial.println(nbuf);
         state=uSD.write(diskBuffer,nbuf); // this is blocking
-        state=uSD.close();          
+        state=uSD.close();
+        uSD.storeConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
       }
       outptr = diskBuffer;
 
