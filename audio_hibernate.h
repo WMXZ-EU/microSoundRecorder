@@ -204,7 +204,7 @@ int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
           t_start = tt; // beginning of each file
         }
         else
-        // check is we end equisition cycle
+        // check is we end acquisition cycle
         if ((t_rep>t_on) && (tt >= t_rec + t_on))
         { // need to stop
           nsec = (t_rec + t_rep - tt);
@@ -213,7 +213,6 @@ int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
           #endif
           Serial.println(nsec); 
           Serial.println("Hibernate now 1");
-//          if(nsec>0) setWakeupCallandSleep(nsec);
           return nsec; 
         }
       }
@@ -227,12 +226,8 @@ int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
             #ifdef SLEEP_SHORT
               if(nsec>ShortSleepDuration) nsec=ShortSleepDuration;
             #endif
-            Serial.println(t_rec); 
-            Serial.println(t_rep); 
-            Serial.println(t_on); 
             Serial.println(nsec); 
             Serial.println("Hibernate now 2");
-//            if(nsec>0) setWakeupCallandSleep(nsec);
             return nsec; 
           }
     }
@@ -261,8 +256,6 @@ int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
     
     Serial.println(nsec); 
     Serial.println("Hibernate now 3");
-//    if(nsec>0) setWakeupCallandSleep(nsec);
-      
     return nsec;
   }
   return 0;

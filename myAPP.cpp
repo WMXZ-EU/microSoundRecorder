@@ -272,8 +272,8 @@ void setup() {
 //  while(!Serial);
 //  while(!Serial && (millis()<3000));
 //  ledOff();
-  //
-  // check if RTC clock is about the compile time clock
+//
+//  check if RTC clock is about the compile time clock
 //  uint32_t t0=rtc_get();
 //  uint32_t t1=(uint32_t)&__rtc_localtime;
 //  if((t1-t0)>100) rtc_set(t1);
@@ -325,6 +325,7 @@ void setup() {
   // lets start
   process1.begin(&snipParameters); 
   queue1.begin();
+  //
   Serial.println("End of Setup");
 }
 
@@ -341,8 +342,8 @@ void loop() {
   if(queue1.available())
   { // have data on queue
     nsec=checkDutyCycle(&acqParameters, state);
-    if(nsec<0) {Serial.println("A"); uSD.setClosing();} // this will be last record in file
-    if(nsec>0) {Serial.printf("B %d %d\r\n",state, nsec); setWakeupCallandSleep(nsec);} // file closed sleep now
+    if(nsec<0) { uSD.setClosing();} // this will be last record in file
+    if(nsec>0) { setWakeupCallandSleep(nsec);} // file closed sleep now
     //
     if(state==0)
     { // generate header before file is opened
