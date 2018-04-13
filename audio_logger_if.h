@@ -165,13 +165,8 @@ void dateTime(uint16_t* date, uint16_t* time)
 }
 
 char *makeFilename(char * prefix)
-{ static int ifl=0;
-  static char filename[40];
+{ static char filename[40];
 
-  ifl++;
-//  if (ifl>MAXFILE) return 0;
-//  sprintf(filename,"File%04d.raw",ifl);
-//
   struct tm tx = seconds2tm(RTC_TSR);
   sprintf(filename, "%s_%04d_%02d_%02d_%02d_%02d_%02d%s", prefix, 
                     tx.tm_year, tx.tm_mon, tx.tm_mday, tx.tm_hour, tx.tm_min, tx.tm_sec,postfix);
@@ -261,7 +256,6 @@ int16_t c_uSD::write(int16_t *data, int32_t ndat)
     state=2;
     if (2*ndat != file.write((char *) data, 2*ndat)) sd.errorHalt("file.write data failed");
     nbuf++;
-//    if(nbuf==MAXBUF) state=3; // flag to close file
     if(closing) {closing=0; state=3;}
   }
   
@@ -275,13 +269,11 @@ int16_t c_uSD::close(void)
 {   // close file
     file.truncate();
     #ifdef GEN_WAV_FILE
-      uint32_t fileSize = file.size();
-//      file.seek(0);
-//      file.read(buffer,512);
-      memcpy(header,wavHeader(fileSize),44);
-      file.seek(0);
-      file.write(header,512);
-      file.seek(fileSize);
+       uint32_t fileSize = file.size();
+       memcpy(header,wavHeader(fileSize),44);
+       file.seek(0);
+       file.write(header,512);
+       file.seek(fileSize);
     #endif
     file.close();
     Serial.println("file Closed");    
