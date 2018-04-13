@@ -1,5 +1,6 @@
 
 
+
 # microSoundRecorder
 Environmental Sound Recorder for Teensy 3.6. It builds on the BasicAudioLogger, but will be developed into a tool suited for environmental sound monitoring and bio-acoustic research.
 
@@ -24,3 +25,6 @@ The I2S_32 mode allows an improved acquisiton of 24 bit MEMS microphones
 
 ## caveat
 this is still in development
+
+## Examples
+this directory contains examples recorded during testing and in the field
