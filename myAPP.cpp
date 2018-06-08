@@ -38,6 +38,19 @@
  *          Feature: allow scheduled acquisition with hibernate during off times
  *          Feature: allow audio triggered acquisition
  * 
+ * DD4WH 2018_05_22
+ * added MONO I2C32 bit mode
+ * added file write for environmental logger
+ * added support for BME280 sensor --> library by bolderflight, thank you!
+ * https://github.com/bolderflight/BME280
+ * added support for BH1750 light sensor --> library by claws, thank you! 
+ * https://github.com/claws/BH1750
+ * 
+ * settings necessary:
+ * 
+ * audio_hibernate.h --> line 148: time that is required to wake up power bank (LED burn time)
+ * set time --> uncomment lines 315-317
+ * 
  */
 #include "core_pins.h" // this call also kinetis.h
 
@@ -48,15 +61,44 @@
  * defined in stock AudioStream.h
  */
 
-// possible ACQ interfaces
-#define _ADC_0		0	// single ended ADC0
-#define _ADC_D		1	// differential ADC0
-#define _ADC_S		2	// stereo ADC0 and ADC1
-#define _I2S		3	// I2S (16 bit stereo audio)
-#define _I2S_32   4 // I2S (32 bit stereo audio)
-#define _I2S_QUAD	5	// I2S (16 bit quad audio)
+// comment out, if you do not attach environmental sensors
+#define USE_ENVIRONMENTAL_SENSORS
 
-#define ACQ _I2S_32	// selected acquisition interface
+
+#ifdef USE_ENVIRONMENTAL_SENSORS
+// temperature sensor /////////////////////////////////////
+#include "BME280.h"
+
+// connected to I2C
+// pin 18 - SDA
+// pin 19 - SCL 
+/* A BME280 object with I2C address 0x76 (SDO to GND) */
+/* on Teensy I2C bus 0 */
+BME280 bme(Wire,0x76);
+////////////////////////////////////////////////////////////
+
+// Light sensor /////////////////////////////////////
+#include <BH1750.h>
+
+BH1750 lightMeter;
+// connected to I2C, adress is 0x23 [if ADDR pin is NC or GND]
+// pin 18 - SDA
+// pin 19 - SCL
+#endif
+
+////////////////////////////////////////////////////////////
+
+// possible ACQ interfaces
+#define _ADC_0		      0	// single ended ADC0
+#define _ADC_D		      1	// differential ADC0
+#define _ADC_S		      2	// stereo ADC0 and ADC1
+#define _I2S		        3	// I2S (16 bit stereo audio)
+#define _I2S_32         4 // I2S (32 bit stereo audio), eg. two ICS43434 mics
+#define _I2S_QUAD	      5	// I2S (16 bit quad audio)
+#define _I2S_32_MONO    6 // I2S (32 bit mono audio), eg. one ICS43434 mic
+
+//#define ACQ _I2S_32_MONO  // selected acquisition interface
+#define ACQ _I2S_32  // selected acquisition interface
 
 // For ADC SE pins can be changed
 #if ACQ == _ADC_0
@@ -72,7 +114,7 @@
 #endif
 
 #define MQUEU 550 // number of buffers in aquisition queue
-#define MDEL 0    // maximal delay in buffer counts (128/fs each; 128/48 = 2.5 ms each)
+#define MDEL 100    // maximal delay in buffer counts (128/fs each; 128/48 = 2.5 ms each)
                   // MDEL == -1 conects ACQ interface directly to mux and queue
 #define GEN_WAV_FILE  // generate wave files, if undefined generate raw data (with 512 byte header)
 
@@ -100,7 +142,9 @@ typedef struct
 //  acquire whole day (from midnight to noon and noot to midnight)
 //
 
-ACQ_Parameters_s acqParameters = { 120, 60, 100, 0, 12, 12, 24, 0, "WMXZ"};
+//ACQ_Parameters_s acqParameters = { 60, 30, 120, 0, 12, 12, 24, 0, "tes5"};
+
+ACQ_Parameters_s acqParameters = { 30, 10, 60, 3, 10, 18, 24, 0, "Mono"};
 
 // the following global variable may be set from anywhere
 // if one wanted to close file immedately
@@ -122,7 +166,16 @@ typedef struct
    int32_t ndel;        // pre trigger delay (in units of audio blocks)
 } SNIP_Parameters_s; 
 
-SNIP_Parameters_s snipParameters = { 0, 1<<10, 1000, 10000, 3750, 375, 0, MDEL};
+//SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL};
+SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL};
+
+// test: write environmental variables into a text file
+// will be substituted with real sensor logging
+  float temperature = 20.4;
+  float pressure = 1014.1;
+  float humidity = 90.3;
+  uint16_t lux = 99;
+
 
 //==================== Audio interface ========================================
 /*
@@ -218,6 +271,29 @@ SNIP_Parameters_s snipParameters = { 0, 1<<10, 1000, 10000, 3750, 375, 0, MDEL};
   AudioConnection     patchCord3(acq,2, mux1,2);
   AudioConnection     patchCord4(acq,3, mux1,3);
   AudioConnection     patchCord5(mux1, queue1);
+
+#elif ACQ == _I2S_32_MONO
+  #include "i2s_32.h"
+  I2S_32         acq;
+
+  #include "m_queue.h"
+  mRecordQueue<int16_t, MQUEU> queue1;
+ 
+  #if MDEL>=0
+    #include "m_delay.h"
+    mDelay<1,(MDEL+2)>  delay1(0); // have ten buffers more in queue only to be safe
+  #endif
+  
+  #include "mProcess.h"
+  mProcess process1(&snipParameters);
+
+  #if MDEL <0
+    AudioConnection     patchCord1(acq, queue1);
+  #else
+    AudioConnection     patchCord1(acq, process1);
+    AudioConnection     patchCord3(acq, delay1);
+    AudioConnection     patchCord5(delay1, queue1);
+  #endif
   
 #else
   #error "invalid acquisition device"
@@ -258,6 +334,49 @@ extern void rtc_set(unsigned long t);
 #include "m_menu.h"
 void setup() {
   int16_t nsec;
+
+/*
+// this reads the Teensy internal temperature sensor
+  analogReadResolution(16);
+  humidity = (float)analogRead(70);
+  //temperature = -0.0095 * humidity + 132.0;
+  // for 10bit resolution
+  //temperature = -1.8626 * analogRead(70) + 434.5;
+  // for 16bit resolution
+  temperature = -0.0293 * analogRead(70) + 440.5;
+*/
+
+#ifdef USE_ENVIRONMENTAL_SENSORS
+  // begin communication with temperature/humidity sensor
+  // BME280 and set to default
+  // sampling, iirc, and standby settings
+  if (bme.begin() < 0) {
+    Serial.println("Error communicating with sensor, check wiring and I2C address");
+//    while(1){}
+  }
+
+  // adjust settings for temperature/humidity/pressure sensor
+  bme.setIirCoefficient(BME280::IIRC_OFF); // switch OFF IIR filter of sensor
+  bme.setForcedMode(); // set forced mode --> for long periods between measurements
+  // read the sensor
+  bme.readSensor();
+
+  temperature = bme.getTemperature_C();
+  pressure = bme.getPressure_Pa()/100.0f;
+  humidity = bme.getHumidity_RH();
+
+  lightMeter.begin(BH1750::ONE_TIME_HIGH_RES_MODE);
+
+  lux = lightMeter.readLightLevel();
+/*  // displaying the data
+  Serial.print(bme.getPressure_Pa()/100.0f,1);
+  Serial.print("\t");
+  Serial.print(bme.getTemperature_C(),2);
+  Serial.print("\t");
+  Serial.println(bme.getHumidity_RH(),2);
+*/  
+#endif
+  
   //
   // put your setup code here, to run once:
   pinMode(3,INPUT_PULLUP); // needed to enter menu if grounded
@@ -281,8 +400,13 @@ void setup() {
   //
   uSD.init();
 
-  // load config allways first
+  // always load config first
   uSD.loadConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
+
+#ifdef USE_ENVIRONMENTAL_SENSORS
+  // write temperature, pressure and humidity to SD card
+   uSD.writeTemperature(temperature, pressure, humidity, lux);
+#endif
 
   // if pin3 is connected to GND enter menu mode
   int ret;
@@ -294,7 +418,12 @@ void setup() {
   //
   // check if it is our time to record
   nsec=checkDutyCycle(&acqParameters, -1);
-  if(nsec>0) setWakeupCallandSleep(nsec); // will not return if we should not continue with acquisition 
+//  if(nsec>0) setWakeupCallandSleep(nsec); // will not return if we should not continue with acquisition 
+  if(nsec>0)
+  { 
+//    delay(1000);
+    setWakeupCallandSleep(nsec); // will not return if we should not continue with acquisition 
+  }
 
   // Now modify objects from audio library
   #if (ACQ == _ADC_0) | (ACQ == _ADC_D) | (ACQ == _ADC_S)
@@ -305,7 +434,7 @@ void setup() {
     I2S_modification(F_SAMP,16); // I2S_Quad not modified for 32 bit
   #endif
   //
-  #if(ACQ == _I2S_32)
+  #if(ACQ == _I2S_32 || ACQ == _I2S_32_MONO)
     I2S_modification(F_SAMP,32);
     // shift I2S data right by 8 bits to move 24 bit ADC data to LSB 
     // the lower 16 bit are always maintained for further processing
@@ -347,7 +476,7 @@ void loop() {
     //
     if(state==0)
     { // generate header before file is opened
-    #ifndef GEN_WAV_FILE // is declased in audio_logger_if.h
+    #ifndef GEN_WAV_FILE // is declared in audio_logger_if.h
        uint32_t *header=(uint32_t *) headerUpdate();
        uint32_t *ptr=(uint32_t *) outptr;
        // copy to disk buffer
