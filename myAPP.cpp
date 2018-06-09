@@ -128,7 +128,7 @@ BH1750 lightMeter;
   AudioConnection     patchCord2(acq,1, mux1,1);
   AudioConnection     patchCord3(mux1, queue1);
 
-#elif ACQ == _I2S
+#elif (ACQ == _I2S) || (ACQ == _I2S_TYMPAN)
   #include "input_i2s.h"
   AudioInputI2S         acq;
 	#include "m_queue.h"
@@ -141,7 +141,7 @@ BH1750 lightMeter;
   AudioConnection     patchCord2(acq,1, mux1,1);
   AudioConnection     patchCord3(mux1, queue1);
 
-#elif (ACQ == _I2S_32) || (ACQ == _I2S_32_TYMPAN) 
+#elif ACQ == _I2S_32  
   #include "i2s_32.h"
   I2S_32         acq;
 
@@ -349,7 +349,7 @@ extern "C" void setup() {
     I2S_modification(F_SAMP,16); // I2S_Quad not modified for 32 bit
   #endif
   //
-  #if(ACQ == _I2S_32 || ACQ == _I2S_32_MONO || ACQ == _I2S_32_TYMPAN)
+  #if(ACQ == _I2S_32 || ACQ == _I2S_32_MONO)
     I2S_modification(F_SAMP,32);
     // shift I2S data right by 8 bits to move 24 bit ADC data to LSB 
     // the lower 16 bit are always maintained for further processing
@@ -358,7 +358,7 @@ extern "C" void setup() {
     acq.digitalShift(nbits); 
   #endif
 
-  #if(ACQ == _I2S_32_TYMPAN)
+  #if(ACQ == _I2S_TYMPAN)
     // initalize typan's tlv320aic3206
     //Enable the Tympan to start the audio flowing!
     audioHardware.enable(); // activate AIC
