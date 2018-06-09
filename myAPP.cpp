@@ -45,112 +45,29 @@
  * https://github.com/bolderflight/BME280
  * added support for BH1750 light sensor --> library by claws, thank you! 
  * https://github.com/claws/BH1750
+ *
+ * WMXZ 09-Jun-2018
+ * Added support to Tympan audio board  ( https://tympan.org )
+ * requires tympan audio library (https://github.com/Tympan/Tympan_Library)
+ * compile with Serial
  * 
  */
 #include "core_pins.h" // this call also kinetis.h
 
-/*********************** Begin possible User Modifications ********************************/
-// possible modifications are marked with //<<<???>>>
-//----------------------------------------------------------------------------------------
-#define F_SAMP 48000 // desired sampling frequency  //<<<???>>>
-/*
- * NOTE: changing frequency impacts the macros 
- *      AudioProcessorUsage and AudioProcessorUsageMax
- * defined in stock AudioStream.h
- */
+// edits are to be done in the following config.h file
+#include "config.h"
 
-////////////////////////////////////////////////////////////
-
-// possible ACQ interfaces
-#define _ADC_0		      0	// single ended ADC0
-#define _ADC_D		      1	// differential ADC0
-#define _ADC_S		      2	// stereo ADC0 and ADC1
-#define _I2S		        3	// I2S (16 bit stereo audio)
-#define _I2S_32         4 // I2S (32 bit stereo audio), eg. two ICS43434 mics
-#define _I2S_QUAD	      5	// I2S (16 bit quad audio)
-#define _I2S_32_MONO    6 // I2S (32 bit mono audio), eg. one ICS43434 mic
-
-//#define ACQ   _I2S_32_MONO  // selected acquisition interface
-#define ACQ   _I2S_32  // selected acquisition interface  //<<<???>>>
-
-// For ADC SE pins can be changed
-#if ACQ == _ADC_0
-	#define ADC_PIN A2 // can be changed  //<<<???>>>
-	#define DIFF 0
-#elif ACQ == _ADC_D
-    #define ADC_PIN A10 //fixed
-	#define DIFF 1
-#elif ACQ == _ADC_S
-	#define ADC_PIN1 A2 // can be changed //<<<???>>>
-	#define ADC_PIN2 A3 // can be changed //<<<???>>>
-	#define DIFF 0
+//==================== Tympan audio board interface ========================================
+#if ACQ == _I2S_32_TYMPAN
+  #include "src/Tympan.h"
+  #include "src/control_tlv320aic3206.h"
+  TympanPins    tympPins(TYMPAN_REVISION);        //TYMPAN_REV_C or TYMPAN_REV_D
+  TympanBase    audioHardware(tympPins);
 #endif
 
-#define MQUEU 550 // number of buffers in aquisition queue
-#define MDEL 100    // maximal delay in buffer counts (128/fs each; 128/48 = 2.5 ms each)
-                  // MDEL == -1 conects ACQ interface directly to mux and queue
-#define GEN_WAV_FILE  // generate wave files, if undefined generate raw data (with 512 byte header) //<<<???>>>
-
-/****************************************************************************************/
-// some structures to be used for controllong acquisition
-// scheduled acquisition
-typedef struct
-{	uint32_t on;	// acquisition on time in seconds
-	uint32_t ad;	// acquisition file size in seconds
-	uint32_t ar;	// acquisition rate, i.e. every ar seconds (if < on then continuous acqisition)
-	uint32_t T1,T2; // first aquisition window (from T1 to T2) in Hours of day
-	uint32_t T3,T4; // second aquisition window (from T1 to T2) in Hours of day
-  uint32_t rec;  // time when secording started
-  char name[8];   // prefix for recorder file names
-} ACQ_Parameters_s;
-
-// T1 to T3 are increasing hours, T4 can be before or after midnight
-// choose for continuous recording {0,12,12,24}
-// if "ar" > "on" the do dutycycle, i.e.sleep between on and ar seconds
-//
-// Example
-// ACQ_Parameters_s acqParameters = {120, 60, 180, 0, 12, 12, 24, 0, "WMXZ"};
-//  acquire 2 files each 60 s long (totalling 120 s)
-//  sleep for 60 s (to reach 180 s acquisition interval)
-//  acquire whole day (from midnight to noon and noot to midnight)
-//
-
-ACQ_Parameters_s acqParameters = { 30, 10, 60, 3, 10, 18, 24, 0, "Mono"}; //<<<???>>>
-
-// the following global variable may be set from anywhere
-// if one wanted to close file immedately
-// mustClose = -1: disable this feature, close on time limit but finish to fill diskBuffer
-// mustcClose = 0: flush data and close exactly on time limit
-// mustClose = 1: flush data and close immediately (not for user, this will be done by program)
-
-int16_t mustClose = -1;// initial value (can be -1: ignore event trigger or 0: implement event trigger) //<<<???>>>
-
-// snippet extraction modul
-typedef struct
-{  int32_t iproc;      // type of detection rocessor (0: hihg-pass-rheshold; 1: Taeger-Kaiser-Operator)
-   int32_t thresh;     // power SNR for snippet detection (-1: disable snippet extraction)
-   int32_t win0;       // noise estimation window (in units of audio blocks)
-   int32_t win1;       // detection watchdog window (in units of audio blocks typicaly 10x win0)
-   int32_t extr;       // min extraction window
-   int32_t inhib;      // guard window (inhibit follow-on secondary detections)
-   int32_t nrep;       // noise only interval (nrep =0  indicates no noise archiving)
-   int32_t ndel;        // pre trigger delay (in units of audio blocks)
-} SNIP_Parameters_s; 
-
-SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL}; //<<<???>>>
-
-// The following two lines control the maximal hibernate (sleep) duration
-// this may be useful when using a powerbank, or other cases where frequent booting is desired
-// is used in audio_hibernate.h
-#define SLEEP_SHORT             // uncomment when sleep duration is not limited   //<<<???>>>
-#define ShortSleepDuration 60   // value in seconds
-
-#define USE_ENVIRONMENTAL_SENSORS // comment out, if you do not attach environmental sensors  //<<<???>>>
-
-/*********************** End possible User Modifications ********************************/
-//----------------------------------------------------------------------------------------
 //==================== Environmental sensors ========================================
 
+#if USE_ENVIRONMENTAL_SENSORS==1
 // test: write environmental variables into a text file
 // will be substituted with real sensor logging
   float temperature = 20.4;
@@ -158,7 +75,6 @@ SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL}; //
   float humidity = 90.3;
   uint16_t lux = 99;
 
-#ifdef USE_ENVIRONMENTAL_SENSORS
 // temperature sensor /////////////////////////////////////
 #include "BME280.h"
 
@@ -225,7 +141,7 @@ BH1750 lightMeter;
   AudioConnection     patchCord2(acq,1, mux1,1);
   AudioConnection     patchCord3(mux1, queue1);
 
-#elif ACQ == _I2S_32
+#elif (ACQ == _I2S_32) || (ACQ == _I2S_32_TYMPAN) 
   #include "i2s_32.h"
   I2S_32         acq;
 
@@ -305,23 +221,21 @@ BH1750 lightMeter;
 #include "audio_mods.h"
 #include "audio_logger_if.h"
 #include "audio_hibernate.h"
+#include "m_menu.h"
 
-extern "C"
-{ void setup(void);
-  void loop(void);
-}
+//---------------------------------- some utilities ------------------------------------
 
 // led only allowed if NO I2S
 void ledOn(void)
 {
-  #if (ACQ == _ADC_0) | (ACQ == _ADC_D) | (ACQ == _ADC_S)
+  #if (ACQ == _ADC_0) || (ACQ == _ADC_D) || (ACQ == _ADC_S)
     pinMode(13,OUTPUT);
     digitalWriteFast(13,HIGH);
   #endif
 }
 void ledOff(void)
 {
-  #if (ACQ == _ADC_0) | (ACQ == _ADC_D) | (ACQ == _ADC_S)
+  #if (ACQ == _ADC_0) || (ACQ == _ADC_D) || (ACQ == _ADC_S)
     digitalWriteFast(13,LOW);
   #endif
 }
@@ -333,8 +247,7 @@ extern void rtc_set(unsigned long t);
 
 //__________________________General Arduino Routines_____________________________________
 
-#include "m_menu.h"
-void setup() {
+extern "C" void setup() {
   int16_t nsec;
 
 /*
@@ -348,7 +261,7 @@ void setup() {
   temperature = -0.0293 * analogRead(70) + 440.5;
 */
 
-#ifdef USE_ENVIRONMENTAL_SENSORS
+#if USE_ENVIRONMENTAL_SENSORS==1
   // begin communication with temperature/humidity sensor
   // BME280 and set to default
   // sampling, iirc, and standby settings
@@ -405,7 +318,7 @@ void setup() {
   // always load config first
   uSD.loadConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
 
-#ifdef USE_ENVIRONMENTAL_SENSORS
+#if USE_ENVIRONMENTAL_SENSORS==1
   // write temperature, pressure and humidity to SD card
    uSD.writeTemperature(temperature, pressure, humidity, lux);
 #endif
@@ -436,13 +349,32 @@ void setup() {
     I2S_modification(F_SAMP,16); // I2S_Quad not modified for 32 bit
   #endif
   //
-  #if(ACQ == _I2S_32 || ACQ == _I2S_32_MONO)
+  #if(ACQ == _I2S_32 || ACQ == _I2S_32_MONO || ACQ == _I2S_32_TYMPAN)
     I2S_modification(F_SAMP,32);
     // shift I2S data right by 8 bits to move 24 bit ADC data to LSB 
     // the lower 16 bit are always maintained for further processing
     // typical shift value is between 8 and 12 as lower ADC bits are only noise
     int16_t nbits=12; 
     acq.digitalShift(nbits); 
+  #endif
+
+  #if(ACQ == _I2S_32_TYMPAN)
+    // initalize typan's tlv320aic3206
+    //Enable the Tympan to start the audio flowing!
+    audioHardware.enable(); // activate AIC
+    //enable the Tympman to detect whether something was plugged inot the pink mic jack
+    audioHardware.enableMicDetect(true);
+    
+    //Choose the desired audio input on the Typman...this will be overridden by the serviceMicDetect() in loop() 
+    audioHardware.inputSelect(TYMPAN_INPUT_DEVICE);
+  
+    //Set the desired input gain level
+    audioHardware.setInputGain_dB(input_gain_dB); // set input volume, 0-47.5dB in 0.5dB setps
+    
+    //Set the state of the LEDs
+    audioHardware.setRedLED(HIGH);
+    audioHardware.setAmberLED(LOW);
+    
   #endif
   
   //are we using the eventTrigger?
@@ -464,7 +396,7 @@ void setup() {
 
 volatile uint32_t maxValue=0, maxNoise=0; // possibly be updated outside
 
-void loop() {
+extern "C" void loop() {
   // put your main code here, to run repeatedly:
   int16_t nsec;
   uint32_t to=0,t1,t2;

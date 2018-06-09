@@ -330,7 +330,7 @@ void c_uSD::loadConfig(uint32_t * param1, int n1, int32_t *param2, int n2)
 // table with following columns
 // date | time | temperature | pressure | humidity
 
-//O_EXCL : Ensure that this call creates the file: if this flag is specified in conjunction with O_CREAT, 
+// O_EXCL : Ensure that this call creates the file: if this flag is specified in conjunction with O_CREAT, 
 //          and pathname already exists, then open() will fail. The behavior of O_EXCL is undefined if O_CREAT is not specified. 
 // O_TRUNC : If the file already exists and is a regular file and the open mode allows writing (i.e., is O_RDWR or O_WRONLY) 
 //           it will be truncated to length 0. If the file is a FIFO or terminal device file, the O_TRUNC flag is ignored. Otherwise the effect of O_TRUNC is unspecified.
@@ -342,27 +342,25 @@ void c_uSD::writeTemperature(float temperature, float pressure, float humidity, 
 { 
   char text[32];
   char envfilename[24];
-  envfilename[0]='E';envfilename[1]='n';envfilename[2]='v';envfilename[3]='i';envfilename[4]='_';
-  // append the name of the location
-  sprintf(&envfilename[5], "%8s.txt", acqParameters.name);
+  sprintf(envfilename, "Envi_%s.txt", acqParameters.name);
   file.open(envfilename, O_CREAT|O_WRITE|O_APPEND);
 
-  struct tm tx = seconds2tm(RTC_TSR);
-  sprintf(text, "%04d_%02d_%02d\,",
-                 tx.tm_year, tx.tm_mon, tx.tm_mday);
-  file.write((char*)text, strlen(text));
-  sprintf(text, "%02d_%02d_%02d\,", 
-                tx.tm_hour, tx.tm_min, tx.tm_sec);
-  file.write((char*)text, strlen(text));
-  sprintf(text, "%10.1f\,", temperature);
-  file.write((char*)text, strlen(text));
-  sprintf(text, "%10.1f\,", pressure);
-  file.write((char*)text, strlen(text));
-//  sprintf(text, "%10.1f \r\n", humidity);
-  sprintf(text, "%10.1f\,", humidity);
-  file.write((char*)text, strlen(text));
-  sprintf(text, "%10d \r\n", lux);
-  file.write((char*)text, strlen(text));
+    struct tm tx = seconds2tm(RTC_TSR);
+    sprintf(text, "%04d_%02d_%02d,",
+                   tx.tm_year, tx.tm_mon, tx.tm_mday);
+    file.write((char*)text, strlen(text));
+    sprintf(text, "%02d_%02d_%02d,", 
+                  tx.tm_hour, tx.tm_min, tx.tm_sec);
+    file.write((char*)text, strlen(text));
+    sprintf(text, "%10.1f,", temperature);
+    file.write((char*)text, strlen(text));
+    sprintf(text, "%10.1f,", pressure);
+    file.write((char*)text, strlen(text));
+  //  sprintf(text, "%10.1f\r\n", humidity);
+    sprintf(text, "%10.1f,", humidity);
+    file.write((char*)text, strlen(text));
+    sprintf(text, "%10d\r\n", lux);
+    file.write((char*)text, strlen(text));
   file.close(); 
 }
 
