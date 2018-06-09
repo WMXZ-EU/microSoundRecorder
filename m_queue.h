@@ -27,7 +27,7 @@
 // WMXZ 01-02-2018 modified to template for variable buffersize
 // this routine is equivalent with stock record_queue if initiated as 
 // "mRecordQueue <int16_t, 53> queue1;"
-// Type T sgould be int16_t for standard AudioStream
+// Type T should be int16_t for standard AudioStream
 // if using own AudioStream version i.e. modified audio_block_t definition than call with proper type
 
  

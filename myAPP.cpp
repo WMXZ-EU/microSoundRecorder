@@ -21,7 +21,7 @@
  */
  
  /*
- * Envionmental micro Sound Recorder
+ * Environmental micro Sound Recorder
  * using Bill Greimans's SdFs on Teensy 3.6 
  * which must be downloaded from https://github.com/greiman/SdFs 
  * and installed as local library
@@ -46,45 +46,18 @@
  * added support for BH1750 light sensor --> library by claws, thank you! 
  * https://github.com/claws/BH1750
  * 
- * settings necessary:
- * 
- * audio_hibernate.h --> line 148: time that is required to wake up power bank (LED burn time)
- * set time --> uncomment lines 315-317
- * 
  */
 #include "core_pins.h" // this call also kinetis.h
 
-#define F_SAMP 48000 // desired sampling frequency
+/*********************** Begin possible User Modifications ********************************/
+// possible modifications are marked with //<<<???>>>
+//----------------------------------------------------------------------------------------
+#define F_SAMP 48000 // desired sampling frequency  //<<<???>>>
 /*
  * NOTE: changing frequency impacts the macros 
  *      AudioProcessorUsage and AudioProcessorUsageMax
  * defined in stock AudioStream.h
  */
-
-// comment out, if you do not attach environmental sensors
-#define USE_ENVIRONMENTAL_SENSORS
-
-
-#ifdef USE_ENVIRONMENTAL_SENSORS
-// temperature sensor /////////////////////////////////////
-#include "BME280.h"
-
-// connected to I2C
-// pin 18 - SDA
-// pin 19 - SCL 
-/* A BME280 object with I2C address 0x76 (SDO to GND) */
-/* on Teensy I2C bus 0 */
-BME280 bme(Wire,0x76);
-////////////////////////////////////////////////////////////
-
-// Light sensor /////////////////////////////////////
-#include <BH1750.h>
-
-BH1750 lightMeter;
-// connected to I2C, adress is 0x23 [if ADDR pin is NC or GND]
-// pin 18 - SDA
-// pin 19 - SCL
-#endif
 
 ////////////////////////////////////////////////////////////
 
@@ -97,26 +70,26 @@ BH1750 lightMeter;
 #define _I2S_QUAD	      5	// I2S (16 bit quad audio)
 #define _I2S_32_MONO    6 // I2S (32 bit mono audio), eg. one ICS43434 mic
 
-//#define ACQ _I2S_32_MONO  // selected acquisition interface
-#define ACQ _I2S_32  // selected acquisition interface
+//#define ACQ   _I2S_32_MONO  // selected acquisition interface
+#define ACQ   _I2S_32  // selected acquisition interface  //<<<???>>>
 
 // For ADC SE pins can be changed
 #if ACQ == _ADC_0
-	#define ADC_PIN A2 // can be changed
+	#define ADC_PIN A2 // can be changed  //<<<???>>>
 	#define DIFF 0
 #elif ACQ == _ADC_D
     #define ADC_PIN A10 //fixed
 	#define DIFF 1
 #elif ACQ == _ADC_S
-	#define ADC_PIN1 A2 // can be changed
-	#define ADC_PIN2 A3 // can be changed
+	#define ADC_PIN1 A2 // can be changed //<<<???>>>
+	#define ADC_PIN2 A3 // can be changed //<<<???>>>
 	#define DIFF 0
 #endif
 
 #define MQUEU 550 // number of buffers in aquisition queue
 #define MDEL 100    // maximal delay in buffer counts (128/fs each; 128/48 = 2.5 ms each)
                   // MDEL == -1 conects ACQ interface directly to mux and queue
-#define GEN_WAV_FILE  // generate wave files, if undefined generate raw data (with 512 byte header)
+#define GEN_WAV_FILE  // generate wave files, if undefined generate raw data (with 512 byte header) //<<<???>>>
 
 /****************************************************************************************/
 // some structures to be used for controllong acquisition
@@ -142,9 +115,7 @@ typedef struct
 //  acquire whole day (from midnight to noon and noot to midnight)
 //
 
-//ACQ_Parameters_s acqParameters = { 60, 30, 120, 0, 12, 12, 24, 0, "tes5"};
-
-ACQ_Parameters_s acqParameters = { 30, 10, 60, 3, 10, 18, 24, 0, "Mono"};
+ACQ_Parameters_s acqParameters = { 30, 10, 60, 3, 10, 18, 24, 0, "Mono"}; //<<<???>>>
 
 // the following global variable may be set from anywhere
 // if one wanted to close file immedately
@@ -152,7 +123,7 @@ ACQ_Parameters_s acqParameters = { 30, 10, 60, 3, 10, 18, 24, 0, "Mono"};
 // mustcClose = 0: flush data and close exactly on time limit
 // mustClose = 1: flush data and close immediately (not for user, this will be done by program)
 
-int16_t mustClose = -1;// initial value (can be -1: ignore event trigger or 0: implement event trigger)
+int16_t mustClose = -1;// initial value (can be -1: ignore event trigger or 0: implement event trigger) //<<<???>>>
 
 // snippet extraction modul
 typedef struct
@@ -166,8 +137,19 @@ typedef struct
    int32_t ndel;        // pre trigger delay (in units of audio blocks)
 } SNIP_Parameters_s; 
 
-//SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL};
-SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL};
+SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL}; //<<<???>>>
+
+// The following two lines control the maximal hibernate (sleep) duration
+// this may be useful when using a powerbank, or other cases where frequent booting is desired
+// is used in audio_hibernate.h
+#define SLEEP_SHORT             // uncomment when sleep duration is not limited   //<<<???>>>
+#define ShortSleepDuration 60   // value in seconds
+
+#define USE_ENVIRONMENTAL_SENSORS // comment out, if you do not attach environmental sensors  //<<<???>>>
+
+/*********************** End possible User Modifications ********************************/
+//----------------------------------------------------------------------------------------
+//==================== Environmental sensors ========================================
 
 // test: write environmental variables into a text file
 // will be substituted with real sensor logging
@@ -176,6 +158,26 @@ SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL};
   float humidity = 90.3;
   uint16_t lux = 99;
 
+#ifdef USE_ENVIRONMENTAL_SENSORS
+// temperature sensor /////////////////////////////////////
+#include "BME280.h"
+
+// connected to I2C
+// pin 18 - SDA
+// pin 19 - SCL 
+/* A BME280 object with I2C address 0x76 (SDO to GND) */
+/* on Teensy I2C bus 0 */
+BME280 bme(Wire,0x76);
+////////////////////////////////////////////////////////////
+
+// Light sensor /////////////////////////////////////
+#include <BH1750.h>
+
+BH1750 lightMeter;
+// connected to I2C, adress is 0x23 [if ADDR pin is NC or GND]
+// pin 18 - SDA
+// pin 19 - SCL
+#endif
 
 //==================== Audio interface ========================================
 /*
@@ -299,7 +301,7 @@ SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL};
   #error "invalid acquisition device"
 #endif
 
-// private 'library' included directly into sketch
+// private 'libraries' included directly into sketch
 #include "audio_mods.h"
 #include "audio_logger_if.h"
 #include "audio_hibernate.h"

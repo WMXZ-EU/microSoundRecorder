@@ -26,7 +26,7 @@
  // derived from duff's lowpower modes
  // 06-jun-17: changed some compiler directives
  //            added high speed mode of K66
- // using hybernate disconnects from USB so serial monitor will break
+ // using hybernate disconnects from USB so serial monitor will break (pre TD 1.42)
  
 #include "kinetis.h"
 #include "core_pins.h"
@@ -149,9 +149,15 @@ void setWakeupCallandSleep(uint32_t nsec)
 }
 
 /***********************************************************************************************/
+// control if sleep duration is limited
+#ifndef SLEEP_SHORT
+//  #define SLEEP_SHORT   // uncomment if default behaviour should be short sleep
+#endif
+#ifndef ShortSleepDuration
+  #define ShortSleepDuration 60   // i.e. wake up every 'ShortSleepDuration' seconds
+#endif
+//
 // flag can be 0 file to be open // time to shutdown if required
-#define SLEEP_SHORT
-#define ShortSleepDuration 60   
 int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
 {	static uint32_t t_start = 0;  // start of actual file
   static uint16_t recording = 0;  // acquisition has started

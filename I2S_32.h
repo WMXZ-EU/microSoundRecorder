@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
  // this SW is modified from PJRC Audio library by WMXZ 
- // for use with the BasicAudioLogger
+ // for use with the BasicAudioLogger and derivatives
  //
 #ifndef I2S_32_H
 #define I2S_32_H
