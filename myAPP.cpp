@@ -58,7 +58,7 @@
 #include "config.h"
 
 //==================== Tympan audio board interface ========================================
-#if ACQ == _I2S_32_TYMPAN
+#if ACQ == _I2S_TYMPAN
   #include "src/Tympan.h"
   #include "src/control_tlv320aic3206.h"
   TympanPins    tympPins(TYMPAN_REVISION);        //TYMPAN_REV_C or TYMPAN_REV_D
@@ -128,7 +128,7 @@ BH1750 lightMeter;
   AudioConnection     patchCord2(acq,1, mux1,1);
   AudioConnection     patchCord3(mux1, queue1);
 
-#elif (ACQ == _I2S) || (ACQ == _I2S_TYMPAN)
+#elif (ACQ == _I2S)
   #include "input_i2s.h"
   AudioInputI2S         acq;
 	#include "m_queue.h"
@@ -212,6 +212,40 @@ BH1750 lightMeter;
     AudioConnection     patchCord3(acq, delay1);
     AudioConnection     patchCord5(delay1, queue1);
   #endif
+
+#elif ACQ == _I2S_TYMPAN
+  #include "input_i2s.h"
+  AudioInputI2S         acq;
+
+  #include "m_queue.h"
+  mRecordQueue<int16_t, MQUEU> queue1;
+  
+  #include "audio_multiplex.h"
+  static void myUpdate(void) { queue1.update(); }
+  AudioStereoMultiplex  mux1((Fxn_t)myUpdate);
+
+  #if MDEL>=0
+    #include "m_delay.h"
+    mDelay<2,(MDEL+2)>  delay1(0); // have ten buffers more in queue only to be safe
+    #include "mProcess.h"
+    mProcess process1(&snipParameters);
+  #endif
+  
+  #if MDEL <0
+    AudioConnection     patchCord1(acq,0, mux1,0);
+    AudioConnection     patchCord2(acq,1, mux1,1);
+    
+  #else
+    AudioConnection     patchCord1(acq,0, process1,0);
+    AudioConnection     patchCord2(acq,1, process1,1);
+    //
+    AudioConnection     patchCord3(acq,0, delay1,0);
+    AudioConnection     patchCord4(acq,1, delay1,1);
+    AudioConnection     patchCord5(delay1,0, mux1,0);
+    AudioConnection     patchCord6(delay1,1, mux1,1);
+  #endif
+  AudioConnection     patchCord7(mux1, queue1);
+  
   
 #else
   #error "invalid acquisition device"
@@ -386,7 +420,9 @@ extern "C" void setup() {
   // set filename prefix
   uSD.setPrefix(acqParameters.name);
   // lets start
-  process1.begin(&snipParameters); 
+  #if MDEL>=0
+    process1.begin(&snipParameters); 
+  #endif
   queue1.begin();
   //
   Serial.println("End of Setup");
@@ -439,7 +475,11 @@ extern "C" void loop() {
   
       // write to disk ( this handles also opening of files)
       // but only if we have detection
-      if((state>=0) && ((snipParameters.thresh<0) || (process1.getSigCount()>0)))
+      if((state>=0) && ((snipParameters.thresh<0) 
+                        #if MDEL >=0
+                        || (process1.getSigCount()>0)
+                        #endif
+      ))
       {
 //        Serial.print(".");
         to=micros();
@@ -459,8 +499,11 @@ extern "C" void loop() {
   {  // queue is empty
   // are we told to close or running out of time?
     // if delay is eneabled must wait for delay to pass by
-    if(((mustClose>0)&& (process1.getSigCount()< -MDEL))
-       || ((mustClose==0) && (checkDutyCycle(&acqParameters, state)<0)))
+    if(
+        #if MDEL >=0
+          ((mustClose>0) && (process1.getSigCount()< -MDEL)) ||
+        #endif
+       ((mustClose==0) && (checkDutyCycle(&acqParameters, state)<0)))
     { 
       // write remaining data to disk and close file
       if(state>=0)

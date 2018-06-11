@@ -42,7 +42,7 @@
 #define _I2S_32_MONO    6 // I2S (32 bit mono audio), eg. one ICS43434 mic
 #define _I2S_TYMPAN     7 // I2S (16 bit tympan stereo audio audio) for use the tympan board
 
-#define ACQ   _I2S_32  // selected acquisition interface  //<<<======>>>
+#define ACQ   _I2S_TYMPAN  // selected acquisition interface  //<<<======>>>
 
 // For ADC SE pins can be changed
 #if ACQ == _ADC_0
@@ -119,7 +119,10 @@ SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL}; //
 #define USE_ENVIRONMENTAL_SENSORS 1 // to use environmental sensors set tom 1 otherwise set to 0  //<<<======>>>
 
 #if ACQ == _I2S_TYMPAN
+  #undef USE_ENVIRONMENTAL_SENSORS
   #define USE_ENVIRONMENTAL_SENSORS 0 // for tympan switch off environmental sensors
+  #undef MDEL
+  #define MDEL -1
   #define TYMPAN_REVISION         TYMPAN_REV_C         //TYMPAN_REV_C or TYMPAN_REV_D   //<<<======>>>
   #define TYMPAN_INPUT_DEVICE     TYMPAN_INPUT_ON_BOARD_MIC // use the on-board microphones   //<<<======>>>
                                   //TYMPAN_INPUT_JACK_AS_MIC // use the microphone jack - defaults to mic bias 2.5V
