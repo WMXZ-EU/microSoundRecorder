@@ -4,6 +4,7 @@
 # microSoundRecorder
 Environmental Sound Recorder for Teensy 3.6. It builds on the BasicAudioLogger, but will be developed into a tool suited for environmental sound monitoring and bio-acoustic research.
 
+More information can be found in the build-in Wiki
 
 ## supports 
 ### build-in Interfaces
