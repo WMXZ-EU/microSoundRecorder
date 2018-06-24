@@ -127,15 +127,15 @@ void ADC_modification(uint32_t fsamp, uint16_t diff)
 // attempt to generate dividers programmatically
 // always better to check
 void I2S_dividers(uint32_t *iscl, uint32_t fsamp, uint32_t nbits)
-{
+{ // nbits is number of bits / frame
     int64_t i1 = 1;
     int64_t i2 = 1;
-    int64_t i3 = 2;
-    float A=F_CPU/2.0f/i3/(2.0f*nbits*fsamp);
+    int64_t i3 = iscl[2]+1;
+    float A=F_CPU/2.0f/i3/(nbits*fsamp);
     float mn=1.0; 
-    for(int ii=1;ii<32;ii++) 
+    for(int ii=1;ii<=32;ii++) 
     { float xx;
-      xx=A*ii-(int32_t)(A*ii); 
+      xx=A*ii-(int32_t)(A*ii); if(xx<0.0) xx=-xx; 
       if(xx<mn && A*ii<256.0) { mn=xx; i1=ii; i2=A*ii;} //select first candidate
     }
     iscl[0] = (int) (i1-1);
@@ -143,19 +143,26 @@ void I2S_dividers(uint32_t *iscl, uint32_t fsamp, uint32_t nbits)
     iscl[2] = (int) (i3-1);
 }
 
+void I2S_stopClock(void)
+{
+      SIM_SCGC6 &= ~SIM_SCGC6_I2S;
+}
+
 void I2S_stop(void)
 {
     I2S0_RCSR &= ~(I2S_RCSR_RE | I2S_RCSR_BCE);
 }
 
-void I2S_modification(uint32_t fsamp, uint16_t nbits)
+void I2S_modification(uint32_t fsamp, uint16_t nbits, int nch)
 { uint32_t iscl[3];
 
-  I2S_dividers(iscl, fsamp ,nbits);
-  float fs = (F_CPU * (iscl[0]+1.0f)) / (iscl[1]+1l) / 2 / (iscl[2]+1l) / (2l*nbits);
+  iscl[2]=1;
+  I2S_dividers(iscl, fsamp ,nch*nbits);
+  float fs = (F_CPU * (iscl[0]+1.0f)) / (iscl[1]+1l) / 2 / (iscl[2]+1l) / (nch*nbits);
+#if DO_DEBUG>0
   Serial.printf("%d %d %d %d %d %d %d\n\r",
-  F_CPU, fsamp, (int)fs, nbits,iscl[0],iscl[1],iscl[2]);
-
+                F_CPU, fsamp, (int)fs, nbits,iscl[0]+1,iscl[1]+1,iscl[2]+1);
+#endif
   // stop I2S
   I2S0_RCSR &= ~(I2S_RCSR_RE | I2S_RCSR_BCE);
 
@@ -165,10 +172,14 @@ void I2S_modification(uint32_t fsamp, uint16_t nbits)
   // configure transmitter
   I2S0_TCR2 = I2S_TCR2_SYNC(0) | I2S_TCR2_BCP | I2S_TCR2_MSEL(1)
     | I2S_TCR2_BCD | I2S_TCR2_DIV(iscl[2]);
+  I2S0_TCR4 = I2S_TCR4_FRSZ(nch-1) | I2S_TCR4_SYWD(0) | I2S_TCR4_MF
+    | I2S_TCR4_FSE | I2S_TCR4_FSD;
 
   // configure receiver (sync'd to transmitter clocks)
   I2S0_RCR2 = I2S_RCR2_SYNC(1) | I2S_TCR2_BCP | I2S_RCR2_MSEL(1)
     | I2S_RCR2_BCD | I2S_RCR2_DIV(iscl[2]);
+  I2S0_RCR4 = I2S_RCR4_FRSZ(nch-1) | I2S_RCR4_SYWD(0) | I2S_RCR4_MF
+    | I2S_RCR4_FSE | I2S_RCR4_FSD;
 
   //restart I2S
   I2S0_RCSR |= I2S_RCSR_RE | I2S_RCSR_BCE;

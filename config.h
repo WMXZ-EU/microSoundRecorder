@@ -23,6 +23,8 @@
  /*********************** Begin possible User Modifications ********************************/
 // possible modifications are marked with //<<<======>>>
 //----------------------------------------------------------------------------------------
+#define DO_DEBUG 0 // print debug info over seriasl line  //<<<======>>>
+
 #define F_SAMP 48000 // desired sampling frequency  //<<<======>>>
 /*
  * NOTE: changing frequency impacts the macros 
@@ -41,8 +43,9 @@
 #define _I2S_QUAD       5 // I2S (16 bit quad audio)
 #define _I2S_32_MONO    6 // I2S (32 bit mono audio), eg. one ICS43434 mic
 #define _I2S_TYMPAN     7 // I2S (16 bit tympan stereo audio audio) for use the tympan board
+#define _I2S_TDM        8 // I2S (8 channel TDM) 
 
-#define ACQ   _I2S  // selected acquisition interface  //<<<======>>>
+#define ACQ   _I2S_TDM  // selected acquisition interface  //<<<======>>>
 
 // For ADC SE pins can be changed
 #if ACQ == _ADC_0
@@ -58,8 +61,9 @@
 #endif
 
 #define MQUEU 550 // number of buffers in aquisition queue
-#define MDEL 100    // maximal delay in buffer counts (128/fs each; for fs= 48 kHz: 128/48 = 2.5 ms each) //<<<======>>>
+#define MDEL -1    // maximal delay in buffer counts (128/fs each; for fs= 48 kHz: 128/48 = 2.5 ms each) //<<<======>>>
                   // MDEL == -1 conects ACQ interface directly to mux and queue
+
 #define GEN_WAV_FILE  // generate wave files, if undefined generate raw data (with 512 byte header) //<<<======>>>
 
 /****************************************************************************************/
@@ -86,7 +90,7 @@ typedef struct
 //  acquire whole day (from midnight to noon and noot to midnight)
 //
 
-ACQ_Parameters_s acqParameters = { 30, 10, 60, 3, 10, 18, 24, 0, "Mono"}; //<<<======>>>
+ACQ_Parameters_s acqParameters = { 30, 10, 60, 0, 12, 12, 24, 0, "TDM"}; //<<<======>>>
 
 // the following global variable may be set from anywhere
 // if one wanted to close file immedately
@@ -98,7 +102,7 @@ int16_t mustClose = -1;// initial value (can be -1: ignore event trigger or 0: i
 
 // snippet extraction modul
 typedef struct
-{  int32_t iproc;      // type of detection rocessor (0: hihg-pass-rheshold; 1: Taeger-Kaiser-Operator)
+{  int32_t iproc;      // type of detection rocessor (0: high-pass-threshold; 1: Taeger-Kaiser-Operator)
    int32_t thresh;     // power SNR for snippet detection (-1: disable snippet extraction)
    int32_t win0;       // noise estimation window (in units of audio blocks)
    int32_t win1;       // detection watchdog window (in units of audio blocks typicaly 10x win0)
@@ -113,28 +117,19 @@ SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL}; //
 // The following two lines control the maximal hibernate (sleep) duration
 // this may be useful when using a powerbank, or other cases where frequent booting is desired
 // is used in audio_hibernate.h
-#define SLEEP_SHORT             // comment when sleep duration is not limited   //<<<======>>>
-#define ShortSleepDuration 60   // value in seconds
+//#define SLEEP_SHORT             // comment when sleep duration is not limited   //<<<======>>>
+#define ShortSleepDuration 60   // value in seconds     //<<<======>>>
 
-#define USE_ENVIRONMENTAL_SENSORS 1 // to use environmental sensors set tom 1 otherwise set to 0  //<<<======>>>
+#define USE_ENVIRONMENTAL_SENSORS 0 // to use environmental sensors set to 1 otherwise set to 0  //<<<======>>>
 
 #if ACQ == _I2S_TYMPAN
   #undef USE_ENVIRONMENTAL_SENSORS
   #define USE_ENVIRONMENTAL_SENSORS 0 // for tympan switch off environmental sensors
-  #undef MDEL
-  #define MDEL -1
   #define TYMPAN_REVISION         TYMPAN_REV_C         //TYMPAN_REV_C or TYMPAN_REV_D   //<<<======>>>
   #define TYMPAN_INPUT_DEVICE     TYMPAN_INPUT_ON_BOARD_MIC // use the on-board microphones   //<<<======>>>
                                   //TYMPAN_INPUT_JACK_AS_MIC // use the microphone jack - defaults to mic bias 2.5V
                                   //TYMPAN_INPUT_JACK_AS_LINEIN // use the microphone jack - defaults to mic bias OFF
   #define input_gain_dB   10.5f   //<<<======>>>
-  
-#elif !((ACQ == _I2S_32) || (ACQ == _I2S_32_MONO))
-  #undef USE_ENVIRONMENTAL_SENSORS
-  #define USE_ENVIRONMENTAL_SENSORS 0 // for tympan switch off environmental sensors
-  #undef MDEL
-  #define MDEL -1
-  
 #endif
 //
 /*********************** End possible User Modifications ********************************/

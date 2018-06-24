@@ -116,7 +116,7 @@ static void gotoSleep(void)
 
 // if K66 is running in highspeed mode (>120 MHz) reduce speed
 // is defined in kinetis.h and mk20dx128c
-#if defined(HAS_KINETIS_HSRUN) && F_CPU > 120000000
+#if defined(HAS_KINETIS_HSRUN) && (F_CPU > 120000000)
     kinetis_hsrun_disable( );
 #endif   
    /* Write to PMPROT to allow all possible power modes */
@@ -131,20 +131,21 @@ static void gotoSleep(void)
 
    SYST_CSR &= ~SYST_CSR_TICKINT;      // disable systick timer interrupt
    SCB_SCR |= SCB_SCR_SLEEPDEEP_MASK;  // Set the SLEEPDEEP bit to enable deep sleep mode (STOP)
-       asm volatile( "wfi" );  // WFI instruction will start entry into STOP mode
+   
+   asm volatile( "wfi" );  // WFI instruction will start entry into STOP mode
    // will never return, but wake-up results in call to ResetHandler() in mk20dx128.c
 }
 
 void setWakeupCallandSleep(uint32_t nsec)
 {  // set alarm to nsec secods in future and go to hibernate
    rtcSetup();
-   llwuSetup();
-   
-//   Serial.println(nsec);
+   llwuSetup();  
    rtcSetAlarm(nsec);
    yield();
-   pinMode(13,OUTPUT);
-   digitalWriteFast(13,HIGH); delay(1000); digitalWriteFast(13,LOW);
+#if DO_DEBUG>0
+   Serial.println(nsec);
+   pinMode(13,OUTPUT); digitalWriteFast(13,HIGH); delay(1000); digitalWriteFast(13,LOW);
+#endif
    gotoSleep();
 }
 
@@ -192,8 +193,9 @@ int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
     { 
       if((flag>0) && (tt >= t_start + t_dur)) //we are indeed still recording
       { // need to close file
-        Serial.println(tt-t_start-t_dur);
+#if DO_DEBUG>0
         Serial.println("close acquisition");
+#endif
         t_start = tt; // update start time for next file
         return -1; // flag to close acquisition
       }
@@ -217,8 +219,10 @@ int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
           #ifdef SLEEP_SHORT
             if(nsec>ShortSleepDuration) nsec=ShortSleepDuration;
           #endif
+#if DO_DEBUG>0
           Serial.println(nsec); 
           Serial.println("Hibernate now 1");
+#endif
           return nsec; 
         }
       }
@@ -232,8 +236,10 @@ int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
             #ifdef SLEEP_SHORT
               if(nsec>ShortSleepDuration) nsec=ShortSleepDuration;
             #endif
+#if DO_DEBUG>0
             Serial.println(nsec); 
             Serial.println("Hibernate now 2");
+#endif
             return nsec; 
           }
     }
@@ -260,8 +266,10 @@ int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
             if(nsec>ShortSleepDuration) nsec=ShortSleepDuration;
     #endif
     
+#if DO_DEBUG>0
     Serial.println(nsec); 
     Serial.println("Hibernate now 3");
+#endif
     return nsec;
   }
   return 0;

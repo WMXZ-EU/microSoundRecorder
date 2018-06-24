@@ -9,10 +9,16 @@ Environmental Sound Recorder for Teensy 3.6. It builds on the BasicAudioLogger, 
 ### build-in Interfaces
 - ADC, ADC_Stereo
 - I2S, I2S_32, I2S_32_MONO, I2S_QUAD 
+- I2S_TYMPAN
+- I2S_TDM
 
 The I2S_32 mode allows an improved acquisition of two 24 bit MEMS microphones
 
 The I2S_32_MONO mode allows an improved acquisition of one 24 bit MEMS microphone, reducing also used disk space
+
+The I2S_TYMPAN mode allows the high quality TYMPAN audio board https://tympan.org/ to be used as audio recorder
+
+The I2S_TDM mode allows multiple digital(e.g. ICS-52000 ) microphones be used in TDM mode
 
 ## implements
 - variable sampling frequency

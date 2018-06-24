@@ -154,7 +154,7 @@ BH1750 lightMeter;
 
   #if MDEL>=0
     #include "m_delay.h"
-    mDelay<2,(MDEL+2)>  delay1(0); // have ten buffers more in queue only to be safe
+    mDelay<2,(MDEL+2)>  delay1(0); // have two buffers more in queue only to be safe
   #endif
   
   #include "mProcess.h"
@@ -246,6 +246,26 @@ BH1750 lightMeter;
   #endif
   AudioConnection     patchCord7(mux1, queue1);
   
+#elif ACQ == _I2S_TDM
+//  #include "input_tdm.h"
+//  AudioInputTDM     acq;
+  #include "i2s_tdm.h"
+  I2S_TDM         acq;
+  
+  #include "m_queue.h"
+  mRecordQueue<int16_t, MQUEU> queue1;
+  
+  #include "audio_multiplex.h"
+  static void myUpdate(void) { queue1.update(); }
+  Audio_Multiplex<5>    mux1((Fxn_t)myUpdate); // 8-chan TDM 
+
+  AudioConnection     patchCord0(acq,0,mux1,0);
+  AudioConnection     patchCord1(acq,1,mux1,1);
+  AudioConnection     patchCord2(acq,2,mux1,2);
+  AudioConnection     patchCord3(acq,3,mux1,3);
+  AudioConnection     patchCord4(acq,4,mux1,4);
+  
+  AudioConnection     patchCord8(mux1, queue1);
   
 #else
   #error "invalid acquisition device"
@@ -284,6 +304,10 @@ extern void rtc_set(unsigned long t);
 extern "C" void setup() {
   int16_t nsec;
 
+#if DO_DEBUG>0
+  while(!Serial);
+  Serial.println("microSoundRecorder");
+#endif
 /*
 // this reads the Teensy internal temperature sensor
   analogReadResolution(16);
@@ -335,7 +359,7 @@ extern "C" void setup() {
 
   // stop I2S early (to be sure)
   I2S_stop();
-  
+
 //  ledOn();
 //  while(!Serial);
 //  while(!Serial && (millis()<3000));
@@ -367,33 +391,30 @@ extern "C" void setup() {
   //
   // check if it is our time to record
   nsec=checkDutyCycle(&acqParameters, -1);
-//  if(nsec>0) setWakeupCallandSleep(nsec); // will not return if we should not continue with acquisition 
-  if(nsec>0)
-  { 
-//    delay(1000);
+  if(nsec>0) 
+  { I2S_stopClock();
     setWakeupCallandSleep(nsec); // will not return if we should not continue with acquisition 
   }
-
   // Now modify objects from audio library
-  #if (ACQ == _ADC_0) | (ACQ == _ADC_D) | (ACQ == _ADC_S)
+  #if (ACQ == _ADC_0) || (ACQ == _ADC_D) || (ACQ == _ADC_S)
     ADC_modification(F_SAMP,DIFF);
+  
   #elif ((ACQ == _I2S))
-    I2S_modification(F_SAMP,32);
+    I2S_modification(F_SAMP,32,1);
+  
   #elif (ACQ == _I2S_QUAD)
-    I2S_modification(F_SAMP,16); // I2S_Quad not modified for 32 bit
-  #endif
-  //
-  #if(ACQ == _I2S_32 || ACQ == _I2S_32_MONO)
-    I2S_modification(F_SAMP,32);
+    I2S_modification(F_SAMP,16,2); // I2S_Quad not modified for 32 bit
+  
+  #elif((ACQ == _I2S_32) || (ACQ == _I2S_32_MONO))
+    I2S_modification(F_SAMP,32,2);
     // shift I2S data right by 8 bits to move 24 bit ADC data to LSB 
     // the lower 16 bit are always maintained for further processing
     // typical shift value is between 8 and 12 as lower ADC bits are only noise
     int16_t nbits=12; 
     acq.digitalShift(nbits); 
-  #endif
 
-  #if(ACQ == _I2S_TYMPAN)
-    // initalize typan's tlv320aic3206
+  #elif(ACQ == _I2S_TYMPAN)
+    // initalize tympan's tlv320aic3206
     //Enable the Tympan to start the audio flowing!
     audioHardware.enable(); // activate AIC
     //enable the Tympman to detect whether something was plugged inot the pink mic jack
@@ -408,9 +429,13 @@ extern "C" void setup() {
     //Set the state of the LEDs
     audioHardware.setRedLED(HIGH);
     audioHardware.setAmberLED(LOW);
-    
+
+  #elif(ACQ == _I2S_TDM)
+    I2S_modification(F_SAMP,32,8);
+    int16_t nbits=12; 
+    acq.digitalShift(nbits); 
   #endif
-  
+
   //are we using the eventTrigger?
   if(snipParameters.thresh>=0) mustClose=0; else mustClose=-1;
   #if MDEL>=0
@@ -442,7 +467,7 @@ extern "C" void loop() {
   { // have data on queue
     nsec=checkDutyCycle(&acqParameters, state);
     if(nsec<0) { uSD.setClosing();} // this will be last record in file
-    if(nsec>0) { setWakeupCallandSleep(nsec);} // file closed sleep now
+    if(nsec>0) { I2S_stopClock(); setWakeupCallandSleep(nsec);} // file closed sleep now
     //
     if(state==0)
     { // generate header before file is opened
@@ -481,7 +506,6 @@ extern "C" void loop() {
                         #endif
       ))
       {
-//        Serial.print(".");
         to=micros();
         state=uSD.write(diskBuffer,BUFFERSIZE); // this is blocking
         t1=micros();
@@ -491,7 +515,10 @@ extern "C" void loop() {
       }
     }
     if(!state)
-    { Serial.println("closed");
+    { 
+#if DO_DEBUG>0
+      Serial.println("closed");
+#endif
       uSD.storeConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
     }
   }
@@ -517,10 +544,13 @@ extern "C" void loop() {
 
       // reset mustClose flag
       if(snipParameters.thresh>=0) mustClose=0; else mustClose=-1;
+#if DO_DEBUG>0
       Serial.println("file closed");
+#endif
     }
   }
 
+#if DO_DEBUG>0
   // some statistics on progress
   static uint32_t loopCount=0;
   static uint32_t t0=0;
@@ -554,7 +584,8 @@ extern "C" void loop() {
     maxValue=0;
     maxNoise=0;
  }
-  asm("wfi"); // to save some power switch off idle cpu
+#endif
 
+  asm("wfi"); // to save some power switch off idle cpu
 }
 

@@ -170,8 +170,9 @@ char *makeFilename(char * prefix)
   struct tm tx = seconds2tm(RTC_TSR);
   sprintf(filename, "%s_%04d_%02d_%02d_%02d_%02d_%02d%s", prefix, 
                     tx.tm_year, tx.tm_mon, tx.tm_mday, tx.tm_hour, tx.tm_min, tx.tm_sec,postfix);
-
+#if DO_DEBUG>0
   Serial.println(filename);
+#endif
   return filename;  
 }
 
@@ -282,7 +283,9 @@ int16_t c_uSD::close(void)
        file.seek(fileSize);
     #endif
     file.close();
+#if DO_DEBUG>0
     Serial.println("file Closed");    
+#endif
     state=0;  // flag to open new file
     return state;
 }
@@ -346,21 +349,12 @@ void c_uSD::writeTemperature(float temperature, float pressure, float humidity, 
   file.open(envfilename, O_CREAT|O_WRITE|O_APPEND);
 
     struct tm tx = seconds2tm(RTC_TSR);
-    sprintf(text, "%04d_%02d_%02d,",
-                   tx.tm_year, tx.tm_mon, tx.tm_mday);
-    file.write((char*)text, strlen(text));
-    sprintf(text, "%02d_%02d_%02d,", 
-                  tx.tm_hour, tx.tm_min, tx.tm_sec);
-    file.write((char*)text, strlen(text));
-    sprintf(text, "%10.1f,", temperature);
-    file.write((char*)text, strlen(text));
-    sprintf(text, "%10.1f,", pressure);
-    file.write((char*)text, strlen(text));
-  //  sprintf(text, "%10.1f\r\n", humidity);
-    sprintf(text, "%10.1f,", humidity);
-    file.write((char*)text, strlen(text));
-    sprintf(text, "%10d\r\n", lux);
-    file.write((char*)text, strlen(text));
+    sprintf(text, "%04d_%02d_%02d,", tx.tm_year, tx.tm_mon, tx.tm_mday);  file.write((char*)text, strlen(text));
+    sprintf(text, "%02d_%02d_%02d,", tx.tm_hour, tx.tm_min, tx.tm_sec);   file.write((char*)text, strlen(text));
+    sprintf(text, "%10.1f,", temperature);   file.write((char*)text, strlen(text));
+    sprintf(text, "%10.1f,", pressure);      file.write((char*)text, strlen(text));
+    sprintf(text, "%10.1f,", humidity);      file.write((char*)text, strlen(text));
+    sprintf(text, "%10d\r\n", lux);          file.write((char*)text, strlen(text));
   file.close(); 
 }
 

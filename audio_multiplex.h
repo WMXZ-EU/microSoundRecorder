@@ -143,4 +143,43 @@ void AudioQuadMultiplex::update(void)
   transmit(out4);
   release(out4);
 }
+//--------------------------------------------------------------------------------------
+template <int NC>
+class Audio_Multiplex: public AudioStream
+{
+public:
+  Audio_Multiplex(Fxn_t Fx) : AudioStream(NC, inputQueueArray) { fx = Fx; clearBlocks();}
+  virtual void update(void);
+private:
+  Fxn_t fx;
+  audio_block_t *inputQueueArray[NC];
+  audio_block_t *inp[NC];
+  audio_block_t *out[NC];
+  void clearBlocks(void) { for(int ii=0;ii<NC;ii++) { inp[ii]=0;}}
+};
+
+template <int NC>
+void Audio_Multiplex<NC>::update(void)
+{ audio_block_t *tmp;
+  for(int ii=0;ii<NC;ii++) if(!inp[ii]) inp[ii]= receiveReadOnly(ii);
+  for(int ii=0;ii<NC;ii++) if(!inp[ii]) return; // continue only is all channels have arrived
+  for(int ii=0;ii<NC;ii++) out[ii]=allocate();
+  
+  // multiplex data
+  for(int ii=0; ii<AUDIO_BLOCK_SAMPLES*NC;ii++)
+  { int i1 = ii % NC;
+    int i2 = ii / NC;
+    int j1 = ii / AUDIO_BLOCK_SAMPLES;
+    int j2 = ii % AUDIO_BLOCK_SAMPLES;
+    out[j1]->data[j2] = inp[i1]->data[i2];    
+  }
+  
+  for(int ii=0;ii<NC;ii++)
+  { release(inp[ii]);
+    transmit(out[ii]);
+    release(out[ii]); if(ii<NC-1) fx();
+  }
+  clearBlocks();
+}
+
 #endif

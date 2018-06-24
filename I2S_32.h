@@ -124,7 +124,7 @@ void I2S_32::isr32(void)
     end = (int32_t *)&i2s_rx_buffer_32[AUDIO_BLOCK_SAMPLES];
   }
   
-   // extract 16 but from 32 bit I2S buffer but shift to right first
+   // extract 16 bit from 32 bit I2S buffer but shift to right first
    // there will be two buffers with each having "AUDIO_BLOCK_SAMPLES" samples
   left = I2S_32::block_left;
   right = I2S_32::block_right;
@@ -177,6 +177,7 @@ void I2S_32::update(void)
     block_right = new_right;
     block_offset = 0;
     __enable_irq();
+    
     // then transmit the DMA's former blocks
     transmit(out_left, 0);
     release(out_left);
