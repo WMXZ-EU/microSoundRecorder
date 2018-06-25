@@ -38,7 +38,7 @@ The I2S_TDM mode allows multiple digital(e.g. ICS-52000 ) microphones be used in
 - BH1750 (light sensor: https://github.com/claws/BH1750)
 
 ## caveat
-this is still in development
+this code is assumed to be developed further, please check regularily applied changes
 
 ## Examples
 this directory contains examples recorded during testing and in the field
