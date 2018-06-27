@@ -204,15 +204,16 @@ char * wavHeader(uint32_t fileSize)
 #define _I2S_TYMPAN     7 // I2S (16 bit tympan stereo audio audio) for use the tympan board
 #define _I2S_TDM        8 // I2S (8 channel TDM) 
  */
-  
+  int nchan=2; // most modes are STEREO modes
+  // for the other modes change no. of channels
 #if ACQ == _ADC_0 || ACQ == _ADC_D || ACQ == _I2S_32_MONO   
-  int nchan=1;
-#else if ACQ == _I2S_QUAD
-  int nchan=4;
-#else if ACQ == _I2S_TDM
-  int nchan=8;  
-#else
-  int nchan=2;
+  nchan=1;
+#endif  
+#if ACQ == _I2S_QUAD
+  nchan=4;
+#endif
+#if ACQ == _I2S_TDM
+  nchan=8;  
 #endif
 
   int nbits=16;
