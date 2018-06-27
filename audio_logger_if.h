@@ -193,8 +193,24 @@ char * wavHeader(uint32_t fileSize)
 {
 //  int fsamp=48000;
   int fsamp = F_SAMP;
-#if ACQ == _I2S_32_MONO
+/*
+#define _ADC_0          0 // single ended ADC0
+#define _ADC_D          1 // differential ADC0
+#define _ADC_S          2 // stereo ADC0 and ADC1
+#define _I2S            3 // I2S (16 bit stereo audio)
+#define _I2S_32         4 // I2S (32 bit stereo audio), eg. two ICS43434 mics
+#define _I2S_QUAD       5 // I2S (16 bit quad audio)
+#define _I2S_32_MONO    6 // I2S (32 bit mono audio), eg. one ICS43434 mic
+#define _I2S_TYMPAN     7 // I2S (16 bit tympan stereo audio audio) for use the tympan board
+#define _I2S_TDM        8 // I2S (8 channel TDM) 
+ */
+  
+#if ACQ == _ADC_0 || ACQ == _ADC_D || ACQ == _I2S_32_MONO   
   int nchan=1;
+#else if ACQ == _I2S_QUAD
+  int nchan=4;
+#else if ACQ == _I2S_TDM
+  int nchan=8;  
 #else
   int nchan=2;
 #endif
