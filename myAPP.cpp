@@ -108,12 +108,36 @@ BH1750 lightMeter;
  */
 
 #if (ACQ == _ADC_0) || (ACQ == _ADC_D)
+ /*
   #include "input_adc.h"
   AudioInputAnalog    acq(ADC_PIN);
   #include "m_queue.h"
   mRecordQueue<int16_t, MQUEU> queue1;
   
   AudioConnection     patchCord1(acq, queue1);
+*/
+
+  #include "input_adc.h"
+  AudioInputAnalog    acq(ADC_PIN);
+  #include "m_queue.h"
+  mRecordQueue<int16_t, MQUEU> queue1;
+
+  #if MDEL>=0
+    #include "m_delay.h"
+    mDelay<1,(MDEL+2)>  delay1(0); // have ten buffers more in queue only to be safe
+  #endif
+  
+  #include "mProcess.h"
+  mProcess process1(&snipParameters);
+
+  #if MDEL <0
+    AudioConnection     patchCord1(acq, queue1);
+    AudioConnection     patchCord2(acq, process1);
+  #else
+    AudioConnection     patchCord1(acq, process1);
+    AudioConnection     patchCord3(acq, delay1);
+    AudioConnection     patchCord5(delay1, queue1);
+  #endif
 
 #elif ACQ == _ADC_S
   #include "input_adcs.h"
@@ -358,8 +382,9 @@ extern "C" void setup() {
 	AudioMemory (MAUDIO); // 600 blocks use about 200 kB (requires Teensy 3.6)
 
   // stop I2S early (to be sure)
-  I2S_stop();
-
+    #if !((ACQ == _ADC_0) || (ACQ == _ADC_D) || (ACQ == _ADC_S)) 
+        I2S_stop();
+    #endif
 //  ledOn();
 //  while(!Serial);
 //  while(!Serial && (millis()<3000));
