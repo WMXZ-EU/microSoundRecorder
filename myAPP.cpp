@@ -425,7 +425,7 @@ extern "C" void setup() {
     ADC_modification(F_SAMP,DIFF);
   
   #elif ((ACQ == _I2S))
-    I2S_modification(F_SAMP,32,1);
+    I2S_modification(F_SAMP,32,2);
   
   #elif (ACQ == _I2S_QUAD)
     I2S_modification(F_SAMP,16,2); // I2S_Quad not modified for 32 bit
