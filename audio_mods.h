@@ -172,14 +172,14 @@ void I2S_modification(uint32_t fsamp, uint16_t nbits, int nch)
   // configure transmitter
   I2S0_TCR2 = I2S_TCR2_SYNC(0) | I2S_TCR2_BCP | I2S_TCR2_MSEL(1)
     | I2S_TCR2_BCD | I2S_TCR2_DIV(iscl[2]);
-  I2S0_TCR4 = I2S_TCR4_FRSZ(nch-1) | I2S_TCR4_SYWD(0) | I2S_TCR4_MF
-    | I2S_TCR4_FSE | I2S_TCR4_FSD;
+  //I2S0_TCR4 = I2S_TCR4_FRSZ(nch-1) | I2S_TCR4_SYWD(0) | I2S_TCR4_MF
+  //  | I2S_TCR4_FSE | I2S_TCR4_FSD;
 
   // configure receiver (sync'd to transmitter clocks)
   I2S0_RCR2 = I2S_RCR2_SYNC(1) | I2S_TCR2_BCP | I2S_RCR2_MSEL(1)
     | I2S_RCR2_BCD | I2S_RCR2_DIV(iscl[2]);
-  I2S0_RCR4 = I2S_RCR4_FRSZ(nch-1) | I2S_RCR4_SYWD(0) | I2S_RCR4_MF
-    | I2S_RCR4_FSE | I2S_RCR4_FSD;
+  //I2S0_RCR4 = I2S_RCR4_FRSZ(nch-1) | I2S_RCR4_SYWD(0) | I2S_RCR4_MF
+  //  | I2S_RCR4_FSE | I2S_RCR4_FSD;
 
   //restart I2S
   I2S0_RCSR |= I2S_RCSR_RE | I2S_RCSR_BCE;
