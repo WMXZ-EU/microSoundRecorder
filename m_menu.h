@@ -1,4 +1,4 @@
-/* Audio Logger for Teensy 3.6
+/* Sound Recorder for Teensy 3.6
  * Copyright (c) 2018, Walter Zimmer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy

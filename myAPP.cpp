@@ -1,4 +1,4 @@
-/* Audio Logger for Teensy 3.6
+/* Sound Recorder for Teensy 3.6
  * Copyright (c) 2018, Walter Zimmer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -47,9 +47,12 @@
  * https://github.com/claws/BH1750
  *
  * WMXZ 09-Jun-2018
- * Added support to Tympan audio board  ( https://tympan.org )
+ * Added support for Tympan audio board  ( https://tympan.org )
  * requires tympan audio library (https://github.com/Tympan/Tympan_Library)
  * compile with Serial
+ * 
+ * WMXZ 23-Jun-2018
+ * Added support for TDM I2S interface
  * 
  */
 #include "core_pins.h" // this call also kinetis.h
@@ -110,47 +113,66 @@ BH1750 lightMeter;
 #if (ACQ == _ADC_0) || (ACQ == _ADC_D)
   #include "input_adc.h"
   AudioInputAnalog    acq(ADC_PIN);
+
+  #define NCH 1
   #include "m_queue.h"
-  mRecordQueue<int16_t, MQUEU> queue1;
+  mRecordQueue<int16_t, MQUEU/NCH> *queue = new mRecordQueue<int16_t, MQUEU/NCH> [NCH];
+//  mRecordQueue<int16_t, MQUEU/NCH> queue1;
   
-  AudioConnection     patchCord1(acq, queue1);
+  AudioConnection     patchCord1(acq, queue[0]);
 
 #elif ACQ == _ADC_S
   #include "input_adcs.h"
   AudioInputAnalogStereo  acq(ADC_PIN1,ADC_PIN2);
-	#include "m_queue.h"
-	mRecordQueue<int16_t, MQUEU> queue1;
-	#include "audio_multiplex.h"
-  static void myUpdate(void) { queue1.update(); }
-  AudioStereoMultiplex    mux1((Fxn_t)myUpdate);
+
+  #define NCH 2
+  #include "m_queue.h"
+  mRecordQueue<int16_t, MQUEU/NCH> *queue = new mRecordQueue<int16_t, MQUEU/NCH> [NCH];
+//  mRecordQueue<int16_t, MQUEU/NCH> queue1;
+//  mRecordQueue<int16_t, MQUEU/NCH> queue2;
+//	#include "audio_multiplex.h"
+//  static void myUpdate(void) { queue1.update(); }
+//  AudioStereoMultiplex    mux1((Fxn_t)myUpdate);
   
-  AudioConnection     patchCord1(acq,0, mux1,0);
-  AudioConnection     patchCord2(acq,1, mux1,1);
-  AudioConnection     patchCord3(mux1, queue1);
+//  AudioConnection     patchCord1(acq,0, mux1,0);
+//  AudioConnection     patchCord2(acq,1, mux1,1);
+//  AudioConnection     patchCord3(mux1, queue1);
+  AudioConnection     patchCord1(acq,0, queue[0],0);
+  AudioConnection     patchCord2(acq,1, queue[1],0);
 
 #elif (ACQ == _I2S)
   #include "input_i2s.h"
   AudioInputI2S         acq;
+
+  #define NCH 2
 	#include "m_queue.h"
-	mRecordQueue<int16_t, MQUEU> queue1;
-	#include "audio_multiplex.h"
-  static void myUpdate(void) { queue1.update(); }
-  AudioStereoMultiplex  mux1((Fxn_t)myUpdate);
+  mRecordQueue<int16_t, MQUEU/NCH> *queue = new mRecordQueue<int16_t, MQUEU/NCH> [NCH];
+//  mRecordQueue<int16_t, MQUEU/NCH> queue1;
+//  mRecordQueue<int16_t, MQUEU/NCH> queue2;
+//	#include "audio_multiplex.h"
+//  static void myUpdate(void) { queue1.update(); }
+//  AudioStereoMultiplex  mux1((Fxn_t)myUpdate);
   
-  AudioConnection     patchCord1(acq,0, mux1,0);
-  AudioConnection     patchCord2(acq,1, mux1,1);
-  AudioConnection     patchCord3(mux1, queue1);
+//  AudioConnection     patchCord1(acq,0, mux1,0);
+//  AudioConnection     patchCord2(acq,1, mux1,1);
+//  AudioConnection     patchCord3(mux1, queue1);
+  
+  AudioConnection     patchCord1(acq,0, queue[0],0);
+  AudioConnection     patchCord2(acq,1, queue[1],0);
 
 #elif ACQ == _I2S_32  
   #include "i2s_32.h"
   I2S_32         acq;
 
+  #define NCH 2
   #include "m_queue.h"
-  mRecordQueue<int16_t, MQUEU> queue1;
+  mRecordQueue<int16_t, MQUEU/NCH> *queue = new mRecordQueue<int16_t, MQUEU/NCH> [NCH];
+//  mRecordQueue<int16_t, MQUEU/NCH> queue1;
+//  mRecordQueue<int16_t, MQUEU/NCH> queue2;
   
-  #include "audio_multiplex.h"
-  static void myUpdate(void) { queue1.update(); }
-  AudioStereoMultiplex  mux1((Fxn_t)myUpdate);
+//  #include "audio_multiplex.h"
+//  static void myUpdate(void) { queue1.update(); }
+//  AudioStereoMultiplex  mux1((Fxn_t)myUpdate);
 
   #if MDEL>=0
     #include "m_delay.h"
@@ -161,8 +183,10 @@ BH1750 lightMeter;
   mProcess process1(&snipParameters);
 
   #if MDEL <0
-    AudioConnection     patchCord1(acq,0, mux1,0);
-    AudioConnection     patchCord2(acq,1, mux1,1);
+//    AudioConnection     patchCord1(acq,0, mux1,0);
+//    AudioConnection     patchCord2(acq,1, mux1,1);
+    AudioConnection     patchCord1(acq,0, queue[0],0);
+    AudioConnection     patchCord2(acq,1, queue[1],0);
     
   #else
     AudioConnection     patchCord1(acq,0, process1,0);
@@ -170,32 +194,46 @@ BH1750 lightMeter;
     //
     AudioConnection     patchCord3(acq,0, delay1,0);
     AudioConnection     patchCord4(acq,1, delay1,1);
-    AudioConnection     patchCord5(delay1,0, mux1,0);
-    AudioConnection     patchCord6(delay1,1, mux1,1);
+//    AudioConnection     patchCord5(delay1,0, mux1,0);
+//    AudioConnection     patchCord6(delay1,1, mux1,1);
+    AudioConnection     patchCord1(delay1,0, queue[0],0);
+    AudioConnection     patchCord2(delay1,1, queue[1],0);
   #endif
-  AudioConnection     patchCord7(mux1, queue1);
+//  AudioConnection     patchCord7(mux1, queue1);
   
 #elif ACQ == _I2S_QUAD
   #include "input_i2s_quad.h"
   AudioInputI2SQuad     acq;
-  #include "m_queue.h"
-  mRecordQueue<int16_t, MQUEU> queue1;
-  #include "audio_multiplex.h"
-  static void myUpdate(void) { queue1.update(); }
-  AudioQuadMultiplex    mux1((Fxn_t)myUpdate);
   
-  AudioConnection     patchCord1(acq,0, mux1,0);
-  AudioConnection     patchCord2(acq,1, mux1,1);
-  AudioConnection     patchCord3(acq,2, mux1,2);
-  AudioConnection     patchCord4(acq,3, mux1,3);
-  AudioConnection     patchCord5(mux1, queue1);
+  #define NCH 4
+  #include "m_queue.h"
+  mRecordQueue<int16_t, MQUEU/NCH> *queue = new mRecordQueue<int16_t, MQUEU/NCH> [NCH];
+//  mRecordQueue<int16_t, MQUEU/NCH> queue1;
+//  mRecordQueue<int16_t, MQUEU/NCH> queue2;
+//  mRecordQueue<int16_t, MQUEU/NCH> queue3;
+//  mRecordQueue<int16_t, MQUEU/NCH> queue4;
+//  #include "audio_multiplex.h"
+//  static void myUpdate(void) { queue1.update(); }
+//  AudioQuadMultiplex    mux1((Fxn_t)myUpdate);
+  
+//  AudioConnection     patchCord1(acq,0, mux1,0);
+//  AudioConnection     patchCord2(acq,1, mux1,1);
+//  AudioConnection     patchCord3(acq,2, mux1,2);
+//  AudioConnection     patchCord4(acq,3, mux1,3);
+//  AudioConnection     patchCord5(mux1, queue1);
+    AudioConnection     patchCord1(acq,0, queue[0],0);
+    AudioConnection     patchCord2(acq,1, queue[1],0);
+    AudioConnection     patchCord3(acq,2, queue[2],0);
+    AudioConnection     patchCord4(acq,3, queue[3],0);
 
 #elif ACQ == _I2S_32_MONO
   #include "i2s_32.h"
   I2S_32         acq;
 
+  #define NCH 1
   #include "m_queue.h"
-  mRecordQueue<int16_t, MQUEU> queue1;
+  mRecordQueue<int16_t, MQUEU/NCH> *queue = new mRecordQueue<int16_t, MQUEU/NCH> [NCH];
+//  mRecordQueue<int16_t, MQUEU> queue1;
  
   #if MDEL>=0
     #include "m_delay.h"
@@ -210,19 +248,22 @@ BH1750 lightMeter;
   #else
     AudioConnection     patchCord1(acq, process1);
     AudioConnection     patchCord3(acq, delay1);
-    AudioConnection     patchCord5(delay1, queue1);
+    AudioConnection     patchCord5(delay1, queue[0]);
   #endif
 
 #elif ACQ == _I2S_TYMPAN
   #include "input_i2s.h"
   AudioInputI2S         acq;
 
+  #define NCH 2
   #include "m_queue.h"
-  mRecordQueue<int16_t, MQUEU> queue1;
+  mRecordQueue<int16_t, MQUEU/NCH> *queue = new mRecordQueue<int16_t, MQUEU/NCH> [NCH];
+//  mRecordQueue<int16_t, MQUEU/NCH> queue1;
+//  mRecordQueue<int16_t, MQUEU/NCH> queue2;
   
-  #include "audio_multiplex.h"
-  static void myUpdate(void) { queue1.update(); }
-  AudioStereoMultiplex  mux1((Fxn_t)myUpdate);
+//  #include "audio_multiplex.h"
+//  static void myUpdate(void) { queue1.update(); }
+//  AudioStereoMultiplex  mux1((Fxn_t)myUpdate);
 
   #if MDEL>=0
     #include "m_delay.h"
@@ -232,8 +273,10 @@ BH1750 lightMeter;
   #endif
   
   #if MDEL <0
-    AudioConnection     patchCord1(acq,0, mux1,0);
-    AudioConnection     patchCord2(acq,1, mux1,1);
+//    AudioConnection     patchCord1(acq,0, mux1,0);
+//    AudioConnection     patchCord2(acq,1, mux1,1);
+    AudioConnection     patchCord1(acq,0, delay1,0);
+    AudioConnection     patchCord2(acq,1, delay1,0);
     
   #else
     AudioConnection     patchCord1(acq,0, process1,0);
@@ -241,31 +284,46 @@ BH1750 lightMeter;
     //
     AudioConnection     patchCord3(acq,0, delay1,0);
     AudioConnection     patchCord4(acq,1, delay1,1);
-    AudioConnection     patchCord5(delay1,0, mux1,0);
-    AudioConnection     patchCord6(delay1,1, mux1,1);
+//    AudioConnection     patchCord5(delay1,0, mux1,0);
+//    AudioConnection     patchCord6(delay1,1, mux1,1);
+    AudioConnection     patchCord5(delay1,0, queue[0],0);
+    AudioConnection     patchCord6(delay1,1, queue[1],0);
   #endif
-  AudioConnection     patchCord7(mux1, queue1);
+//  AudioConnection     patchCord7(mux1, queue1);
   
 #elif ACQ == _I2S_TDM
-//  #include "input_tdm.h"
-//  AudioInputTDM     acq;
   #include "i2s_tdm.h"
   I2S_TDM         acq;
   
+  #define NCH 5
   #include "m_queue.h"
-  mRecordQueue<int16_t, MQUEU> queue1;
+  mRecordQueue<int16_t, MQUEU/NCH> *queue = new mRecordQueue<int16_t, MQUEU/NCH> [NCH];
+//  mRecordQueue<int16_t, MQUEU/NCH> queue1;
+//  mRecordQueue<int16_t, MQUEU/NCH> queue2;
+//  mRecordQueue<int16_t, MQUEU/NCH> queue3;
+//  mRecordQueue<int16_t, MQUEU/NCH> queue4;
+//  mRecordQueue<int16_t, MQUEU/NCH> queue5;
   
-  #include "audio_multiplex.h"
-  static void myUpdate(void) { queue1.update(); }
-  Audio_Multiplex<5>    mux1((Fxn_t)myUpdate); // 8-chan TDM 
+//  #include "audio_multiplex.h"
+//  static void myUpdate(void) { queue1.update(); }
+//  Audio_Multiplex<5>    mux1((Fxn_t)myUpdate); // 8-chan TDM 
 
-  AudioConnection     patchCord0(acq,0,mux1,0);
-  AudioConnection     patchCord1(acq,1,mux1,1);
-  AudioConnection     patchCord2(acq,2,mux1,2);
-  AudioConnection     patchCord3(acq,3,mux1,3);
-  AudioConnection     patchCord4(acq,4,mux1,4);
-  
-  AudioConnection     patchCord8(mux1, queue1);
+  #if MDEL >=0
+    #undef MDEL
+    #define MDEL -1
+  #endif
+//  AudioConnection     patchCord0(acq,0,mux1,0);
+//  AudioConnection     patchCord1(acq,1,mux1,1);
+//  AudioConnection     patchCord2(acq,2,mux1,2);
+//  AudioConnection     patchCord3(acq,3,mux1,3);
+//  AudioConnection     patchCord4(acq,4,mux1,4);
+  AudioConnection     patchCord0(acq,0,queue[0],0);
+  AudioConnection     patchCord1(acq,1,queue[1],0);
+  AudioConnection     patchCord2(acq,2,queue[2],0);
+  AudioConnection     patchCord3(acq,3,queue[3],0);
+  AudioConnection     patchCord4(acq,4,queue[4],0);
+  //
+//  AudioConnection     patchCord8(mux1, queue1);
   
 #else
   #error "invalid acquisition device"
@@ -448,7 +506,8 @@ extern "C" void setup() {
   #if MDEL>=0
     process1.begin(&snipParameters); 
   #endif
-  queue1.begin();
+
+  for(int ii=0; ii<NCH; ii++) queue[ii].begin();
   //
   Serial.println("End of Setup");
 }
@@ -463,7 +522,11 @@ extern "C" void loop() {
   uint32_t to=0,t1,t2;
   static uint32_t t3,t4;
   static int16_t state=0; // 0: open new file, -1: last file
-  if(queue1.available())
+
+  int have_data=1;
+  for(int ii=0;ii<NCH;ii++) if(!queue[ii].available()) have_data=0;
+
+  if(have_data)
   { // have data on queue
     nsec=checkDutyCycle(&acqParameters, state);
     if(nsec<0) { uSD.setClosing();} // this will be last record in file
@@ -480,10 +543,40 @@ extern "C" void loop() {
     #endif
        state=1;
     }
-    // fetch data from queue
-    int32_t * data = (int32_t *)queue1.readBuffer();
+    // fetch data from queues
+    int32_t * data[NCH];
+    for(int ii=0; ii<NCH; ii++) data[ii] = (int32_t *)queue[ii].readBuffer();
     //
     // copy to disk buffer
+    uint32_t *ptr=(uint32_t *) outptr;
+    for(int ii=0;ii<64;ii++) 
+    {
+      for(int jj=0; jj<NCH; jj++)
+      {  *ptr++ = *data[jj]++;
+         if((uint32_t)ptr == ((uint32_t)diskBuffer+BUFFERSIZE))
+         {
+           // flush diskBuffer
+            if((state>=0) 
+                && ((snipParameters.thresh<0) 
+                #if MDEL >=0
+                  || (process1.getSigCount()>0)
+                #endif
+              ))
+            {
+              to=micros();
+              state=uSD.write(diskBuffer,BUFFERSIZE); // this is blocking
+              t1=micros();
+              t2=t1-to;
+              if(t2<t3) t3=t2; // accumulate some time statistics
+              if(t2>t4) t4=t2;
+              ptr=(uint32_t *)diskBuffer;
+            }
+         }
+      }
+    } // copied now all data
+    outptr=(int16_t *)ptr; // save acual write position
+    for(int ii=0; ii<NCH; ii++) queue[ii].freeBuffer();
+/*    
     uint32_t *ptr=(uint32_t *) outptr;
     for(int ii=0;ii<64;ii++) ptr[ii] = data[ii];
     // release buffer an queue
@@ -500,25 +593,28 @@ extern "C" void loop() {
   
       // write to disk ( this handles also opening of files)
       // but only if we have detection
-      if((state>=0) && ((snipParameters.thresh<0) 
-                        #if MDEL >=0
-                        || (process1.getSigCount()>0)
-                        #endif
+      if((state>=0) 
+          && ((snipParameters.thresh<0) 
+              #if MDEL >=0
+                || (process1.getSigCount()>0)
+              #endif
       ))
       {
         to=micros();
         state=uSD.write(diskBuffer,BUFFERSIZE); // this is blocking
         t1=micros();
         t2=t1-to;
-        if(t2<t3) t3=t2;
+        if(t2<t3) t3=t2; // accumulate some time statistics
         if(t2>t4) t4=t2;
       }
     }
+ */
     if(!state)
     { 
 #if DO_DEBUG>0
       Serial.println("closed");
 #endif
+      // store config again if you wanted time of latest file stored
       uSD.storeConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
     }
   }

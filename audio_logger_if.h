@@ -1,4 +1,4 @@
-/* Audio Logger for Teensy 3.6
+/* Sound Recorder for Teensy 3.6
  * Copyright (c) 2018, Walter Zimmer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -45,7 +45,7 @@ const uint64_t PRE_ALLOCATE_SIZE = 40ULL << 20;
 
 //#define MAXFILE 100
 //#define MAXBUF 1000
-#define BUFFERSIZE (8*1024)
+#define BUFFERSIZE (8*8*128)
 int16_t diskBuffer[BUFFERSIZE];
 int16_t *outptr = diskBuffer;
 
@@ -195,6 +195,8 @@ char * wavHeader(uint32_t fileSize)
   int fsamp = F_SAMP;
 #if ACQ == _I2S_32_MONO
   int nchan=1;
+#elif(ACQ == _I2S_TDM)
+  int nchan=5;
 #else
   int nchan=2;
 #endif
@@ -204,23 +206,23 @@ char * wavHeader(uint32_t fileSize)
 
   int nsamp=(fileSize-44)/(nbytes*nchan);
   //
-  static char header[48]; // 44 for wav
+  static char wheader[48]; // 44 for wav
   //
-  strcpy(header,"RIFF");
-  strcpy(header+8,"WAVE");
-  strcpy(header+12,"fmt ");
-  strcpy(header+36,"data");
-  *(int32_t*)(header+16)= 16;// chunk_size
-  *(int16_t*)(header+20)= 1; // PCM 
-  *(int16_t*)(header+22)=nchan;// numChannels 
-  *(int32_t*)(header+24)= fsamp; // sample rate 
-  *(int32_t*)(header+28)= fsamp*nbytes; // byte rate
-  *(int16_t*)(header+32)=nchan*nbytes; // block align
-  *(int16_t*)(header+34)=nbits; // bits per sample 
-  *(int32_t*)(header+40)=nsamp*nchan*nbytes; 
-  *(int32_t*)(header+4)=36+nsamp*nchan*nbytes; 
+  strcpy(wheader,"RIFF");
+  strcpy(wheader+8,"WAVE");
+  strcpy(wheader+12,"fmt ");
+  strcpy(wheader+36,"data");
+  *(int32_t*)(wheader+16)= 16;// chunk_size
+  *(int16_t*)(wheader+20)= 1; // PCM 
+  *(int16_t*)(wheader+22)=nchan;// numChannels 
+  *(int32_t*)(wheader+24)= fsamp; // sample rate 
+  *(int32_t*)(wheader+28)= fsamp*nbytes; // byte rate
+  *(int16_t*)(wheader+32)=nchan*nbytes; // block align
+  *(int16_t*)(wheader+34)=nbits; // bits per sample 
+  *(int32_t*)(wheader+40)=nsamp*nchan*nbytes; 
+  *(int32_t*)(wheader+4)=36+nsamp*nchan*nbytes; 
 
-   return header;
+   return wheader;
 }
 //____________________________ FS Interface implementation______________________
 void c_uSD::init()
@@ -245,12 +247,8 @@ int16_t c_uSD::write(int16_t *data, int32_t ndat)
     char *filename = makeFilename(name);
     if(!filename) {state=-1; return state;} // flag to do not anything
     //
-    if (!file.open(filename, O_CREAT | O_TRUNC |O_RDWR)) 
-    {  sd.errorHalt("file.open failed");
-    }
-    if (!file.preAllocate(PRE_ALLOCATE_SIZE)) 
-    { sd.errorHalt("file.preAllocate failed");    
-    }
+    if (!file.open(filename, O_CREAT | O_TRUNC |O_RDWR)) sd.errorHalt("file.open failed");
+    if (!file.preAllocate(PRE_ALLOCATE_SIZE)) sd.errorHalt("file.preAllocate failed");
     #ifdef  GEN_WAV_FILE // keep first record
           memcpy(header,(const char *)data,512);
     #endif
