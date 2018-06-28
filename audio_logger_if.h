@@ -193,13 +193,7 @@ char * wavHeader(uint32_t fileSize)
 {
 //  int fsamp=48000;
   int fsamp = F_SAMP;
-#if ACQ == _I2S_32_MONO
-  int nchan=1;
-#elif(ACQ == _I2S_TDM)
-  int nchan=5;
-#else
-  int nchan=2;
-#endif
+  int nchan=NCH;
 
   int nbits=16;
   int nbytes=nbits/8;
