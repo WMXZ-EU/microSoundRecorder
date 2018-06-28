@@ -23,9 +23,9 @@
  /*********************** Begin possible User Modifications ********************************/
 // possible modifications are marked with //<<<======>>>
 //----------------------------------------------------------------------------------------
-#define DO_DEBUG 0 // print debug info over seriasl line  //<<<======>>>
+#define DO_DEBUG 1 // print debug info over serial line  //<<<======>>>
 
-#define F_SAMP 48000 // desired sampling frequency  //<<<======>>>
+#define F_SAMP 250000 // desired sampling frequency  //<<<======>>>
 /*
  * NOTE: changing frequency impacts the macros 
  *      AudioProcessorUsage and AudioProcessorUsageMax
@@ -45,7 +45,7 @@
 #define _I2S_TYMPAN     7 // I2S (16 bit tympan stereo audio audio) for use the tympan board
 #define _I2S_TDM        8 // I2S (8 channel TDM) 
 
-#define ACQ   _I2S_TDM  // selected acquisition interface  //<<<======>>>
+#define ACQ  _ADC_0   // selected acquisition interface  //<<<======>>>
 
 // For ADC SE pins can be changed
 #if ACQ == _ADC_0
@@ -90,7 +90,7 @@ typedef struct
 //  acquire whole day (from midnight to noon and noot to midnight)
 //
 
-ACQ_Parameters_s acqParameters = { 30, 10, 60, 0, 12, 12, 24, 0, "TDM"}; //<<<======>>>
+ACQ_Parameters_s acqParameters = { 30, 10, 60, 0, 12, 12, 24, 0, "NEW1"}; //<<<======>>>
 
 // the following global variable may be set from anywhere
 // if one wanted to close file immedately

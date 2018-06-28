@@ -193,10 +193,27 @@ char * wavHeader(uint32_t fileSize)
 {
 //  int fsamp=48000;
   int fsamp = F_SAMP;
-#if ACQ == _I2S_32_MONO
-  int nchan=1;
-#else
-  int nchan=2;
+/*
+#define _ADC_0          0 // single ended ADC0
+#define _ADC_D          1 // differential ADC0
+#define _ADC_S          2 // stereo ADC0 and ADC1
+#define _I2S            3 // I2S (16 bit stereo audio)
+#define _I2S_32         4 // I2S (32 bit stereo audio), eg. two ICS43434 mics
+#define _I2S_QUAD       5 // I2S (16 bit quad audio)
+#define _I2S_32_MONO    6 // I2S (32 bit mono audio), eg. one ICS43434 mic
+#define _I2S_TYMPAN     7 // I2S (16 bit tympan stereo audio audio) for use the tympan board
+#define _I2S_TDM        8 // I2S (8 channel TDM) 
+ */
+  int nchan=2; // most modes are STEREO modes
+  // for the other modes change no. of channels
+#if ACQ == _ADC_0 || ACQ == _ADC_D || ACQ == _I2S_32_MONO   
+  nchan=1;
+#endif  
+#if ACQ == _I2S_QUAD
+  nchan=4;
+#endif
+#if ACQ == _I2S_TDM
+  nchan=8;  
 #endif
 
   int nbits=16;
@@ -331,7 +348,7 @@ void c_uSD::loadConfig(uint32_t * param1, int n1, int32_t *param2, int n2)
 
 // FILE STRUCTURE
 // table with following columns
-// date | time | temperature | pressure | humidity
+// date | time | temperature | pressure | humidity | lux
 
 // O_EXCL : Ensure that this call creates the file: if this flag is specified in conjunction with O_CREAT, 
 //          and pathname already exists, then open() will fail. The behavior of O_EXCL is undefined if O_CREAT is not specified. 
