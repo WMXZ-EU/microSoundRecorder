@@ -131,7 +131,7 @@ void I2S_dividers(uint32_t *iscl, uint32_t fsamp, uint32_t nbits)
     int64_t i1 = 1;
     int64_t i2 = 1;
     int64_t i3 = iscl[2]+1;
-    float A=F_CPU/2.0f/i3/(nbits*fsamp);
+    float A=F_CPU/2.0f/i3/((float)nbits*fsamp);
     float mn=1.0; 
     for(int ii=1;ii<=32;ii++) 
     { float xx;
@@ -158,7 +158,7 @@ void I2S_modification(uint32_t fsamp, uint16_t nbits, int nch)
 
   iscl[2]=1;
   I2S_dividers(iscl, fsamp ,nch*nbits);
-  float fs = (F_CPU * (iscl[0]+1.0f)) / (iscl[1]+1l) / 2 / (iscl[2]+1l) / (nch*nbits);
+  float fs = (F_CPU * (iscl[0]+1.0f)) / (iscl[1]+1l) / 2 / (iscl[2]+1l) / ((float)nch*nbits);
 #if DO_DEBUG>0
   Serial.printf("%d %d %d %d %d %d %d\n\r",
                 F_CPU, fsamp, (int)fs, nbits,iscl[0]+1,iscl[1]+1,iscl[2]+1);
