@@ -115,8 +115,9 @@ BH1750 lightMeter;
   AudioInputAnalog    acq(ADC_PIN);
 
   #define NCH 1
+  #define MQ (MQUEU/NCH)
   #include "m_queue.h"
-  mRecordQueue<MQUEU/NCH> *queue = new mRecordQueue<MQUEU/NCH> [NCH];
+  mRecordQueue<MQ> *queue = new mRecordQueue<MQ> [NCH];
   
   #if MDEL>=0 
     #include "m_delay.h" 
@@ -140,8 +141,9 @@ BH1750 lightMeter;
   AudioInputAnalogStereo  acq(ADC_PIN1,ADC_PIN2);
 
   #define NCH 2
+  #define MQ (MQUEU/NCH)
   #include "m_queue.h"
-  mRecordQueue<MQUEU/NCH> *queue = new mRecordQueue<MQUEU/NCH> [NCH];
+  mRecordQueue<MQ> *queue = new mRecordQueue<MQ> [NCH];
 
   AudioConnection     patchCord1(acq,0, queue[0],0);
   AudioConnection     patchCord2(acq,1, queue[1],0);
@@ -151,8 +153,9 @@ BH1750 lightMeter;
   AudioInputI2S         acq;
 
   #define NCH 2
-	#include "m_queue.h"
-  mRecordQueue<MQUEU/NCH> *queue = new mRecordQueue<MQUEU/NCH> [NCH];
+  #define MQ (MQUEU/NCH)
+  #include "m_queue.h"
+  mRecordQueue<MQ> *queue = new mRecordQueue<MQ> [NCH];
   
   AudioConnection     patchCord1(acq,0, queue[0],0);
   AudioConnection     patchCord2(acq,1, queue[1],0);
@@ -162,8 +165,9 @@ BH1750 lightMeter;
   I2S_32         acq;
 
   #define NCH 2
+  #define MQ (MQUEU/NCH)
   #include "m_queue.h"
-  mRecordQueue<MQUEU/NCH> *queue = new mRecordQueue<MQUEU/NCH> [NCH];
+  mRecordQueue<MQ> *queue = new mRecordQueue<MQ> [NCH];
 
   #if MDEL>=0
     #include "m_delay.h"
@@ -192,8 +196,9 @@ BH1750 lightMeter;
   AudioInputI2SQuad     acq;
   
   #define NCH 4
+  #define MQ (MQUEU/NCH)
   #include "m_queue.h"
-  mRecordQueue<MQUEU/NCH> *queue = new mRecordQueue<MQUEU/NCH> [NCH];
+  mRecordQueue<MQ> *queue = new mRecordQueue<MQ> [NCH];
 
   AudioConnection     patchCord1(acq,0, queue[0],0);
   AudioConnection     patchCord2(acq,1, queue[1],0);
@@ -205,8 +210,9 @@ BH1750 lightMeter;
   I2S_32         acq;
 
   #define NCH 1
+  #define MQ (MQUEU/NCH)
   #include "m_queue.h"
-  mRecordQueue<MQUEU/NCH> *queue = new mRecordQueue<MQUEU/NCH> [NCH];
+  mRecordQueue<MQ> *queue = new mRecordQueue<MQ> [NCH];
  
   #if MDEL>=0
     #include "m_delay.h"
@@ -229,8 +235,9 @@ BH1750 lightMeter;
   AudioInputI2S         acq;
 
   #define NCH 2
+  #define MQ (MQUEU/NCH)
   #include "m_queue.h"
-  mRecordQueue<MQUEU/NCH> *queue = new mRecordQueue<MQUEU/NCH> [NCH];
+  mRecordQueue<MQ> *queue = new mRecordQueue<MQ> [NCH];
 
   #if MDEL>=0
     #include "m_delay.h"
@@ -258,8 +265,9 @@ BH1750 lightMeter;
   I2S_TDM         acq;
   
   #define NCH 5
+  #define MQ (MQUEU/NCH)
   #include "m_queue.h"
-  mRecordQueue<MQUEU/NCH> *queue = new mRecordQueue<MQUEU/NCH> [NCH];
+  mRecordQueue<MQ> *queue = new mRecordQueue<MQ> [NCH];
 
   #if MDEL >=0
     #undef MDEL
