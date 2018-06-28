@@ -53,7 +53,7 @@
   #define ADC_PIN A2 // can be changed  //<<<======>>>
   #define DIFF 0
 #elif ACQ == _ADC_D
-  #define ADC_PIN A10 //fixed
+  #define ADC_PIN A10 //fixed analog pin
   #define DIFF 1
 #elif ACQ == _ADC_S
   #define ADC_PIN1 A2 // can be changed //<<<======>>>

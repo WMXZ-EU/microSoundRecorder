@@ -127,7 +127,7 @@ BH1750 lightMeter;
 
   #define NCH 2
   #include "m_queue.h"
-  mRecordQueue<int16_t, MQUEU/NCH> *queue = new mRecordQueue<int16_t, MQUEU/NCH> [NCH];
+  mRecordQueue<MQUEU/NCH> *queue = new mRecordQueue<MQUEU/NCH> [NCH];
 //  mRecordQueue<int16_t, MQUEU/NCH> queue1;
 //  mRecordQueue<int16_t, MQUEU/NCH> queue2;
 //	#include "audio_multiplex.h"
@@ -146,7 +146,7 @@ BH1750 lightMeter;
 
   #define NCH 2
 	#include "m_queue.h"
-  mRecordQueue<int16_t, MQUEU/NCH> *queue = new mRecordQueue<int16_t, MQUEU/NCH> [NCH];
+  mRecordQueue<MQUEU/NCH> *queue = new mRecordQueue<MQUEU/NCH> [NCH];
 //  mRecordQueue<int16_t, MQUEU/NCH> queue1;
 //  mRecordQueue<int16_t, MQUEU/NCH> queue2;
 //	#include "audio_multiplex.h"
@@ -166,7 +166,7 @@ BH1750 lightMeter;
 
   #define NCH 2
   #include "m_queue.h"
-  mRecordQueue<int16_t, MQUEU/NCH> *queue = new mRecordQueue<int16_t, MQUEU/NCH> [NCH];
+  mRecordQueue<MQUEU/NCH> *queue = new mRecordQueue<MQUEU/NCH> [NCH];
 //  mRecordQueue<int16_t, MQUEU/NCH> queue1;
 //  mRecordQueue<int16_t, MQUEU/NCH> queue2;
   
@@ -207,7 +207,7 @@ BH1750 lightMeter;
   
   #define NCH 4
   #include "m_queue.h"
-  mRecordQueue<int16_t, MQUEU/NCH> *queue = new mRecordQueue<int16_t, MQUEU/NCH> [NCH];
+  mRecordQueue<MQUEU/NCH> *queue = new mRecordQueue<MQUEU/NCH> [NCH];
 //  mRecordQueue<int16_t, MQUEU/NCH> queue1;
 //  mRecordQueue<int16_t, MQUEU/NCH> queue2;
 //  mRecordQueue<int16_t, MQUEU/NCH> queue3;
@@ -232,7 +232,7 @@ BH1750 lightMeter;
 
   #define NCH 1
   #include "m_queue.h"
-  mRecordQueue<int16_t, MQUEU/NCH> *queue = new mRecordQueue<int16_t, MQUEU/NCH> [NCH];
+  mRecordQueue<MQUEU/NCH> *queue = new mRecordQueue<MQUEU/NCH> [NCH];
 //  mRecordQueue<int16_t, MQUEU> queue1;
  
   #if MDEL>=0
@@ -257,7 +257,7 @@ BH1750 lightMeter;
 
   #define NCH 2
   #include "m_queue.h"
-  mRecordQueue<int16_t, MQUEU/NCH> *queue = new mRecordQueue<int16_t, MQUEU/NCH> [NCH];
+  mRecordQueue<MQUEU/NCH> *queue = new mRecordQueue<MQUEU/NCH> [NCH];
 //  mRecordQueue<int16_t, MQUEU/NCH> queue1;
 //  mRecordQueue<int16_t, MQUEU/NCH> queue2;
   
@@ -297,7 +297,7 @@ BH1750 lightMeter;
   
   #define NCH 5
   #include "m_queue.h"
-  mRecordQueue<int16_t, MQUEU/NCH> *queue = new mRecordQueue<int16_t, MQUEU/NCH> [NCH];
+  mRecordQueue<MQUEU/NCH> *queue = new mRecordQueue<MQUEU/NCH> [NCH];
 //  mRecordQueue<int16_t, MQUEU/NCH> queue1;
 //  mRecordQueue<int16_t, MQUEU/NCH> queue2;
 //  mRecordQueue<int16_t, MQUEU/NCH> queue3;

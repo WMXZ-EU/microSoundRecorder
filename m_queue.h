@@ -26,9 +26,7 @@
 
 // WMXZ 01-02-2018 modified to template for variable buffersize
 // this routine is equivalent with stock record_queue if initiated as 
-// "mRecordQueue <int16_t, 53> queue1;"
-// Type T should be int16_t for standard AudioStream
-// if using own AudioStream version i.e. modified audio_block_t definition than call with proper type
+// "mRecordQueue <53> queue1;"
 
  
 #ifndef record_queue_h_
@@ -37,7 +35,7 @@
 #include "AudioStream.h"
 
 //#define MQ 53 // was old value in Audio/record_queue.h
-template <typename T, int MQ>
+template <int MQ>
 class mRecordQueue : public AudioStream
 {
 public:
@@ -48,7 +46,7 @@ public:
   void end(void) { enabled = 0; }
 	uint16_t available(void);
 	void clear(void);
-	T * readBuffer(void);
+	void * readBuffer(void);
 	void freeBuffer(void);
 	virtual void update(void);
   uint32_t dropCount;
@@ -59,8 +57,8 @@ private:
 	volatile uint16_t head, tail, enabled;
 };
 
-template <typename T, int MQ>
-uint16_t mRecordQueue<T, MQ>::available(void)
+template <int MQ>
+uint16_t mRecordQueue<MQ>::available(void)
 {
   uint16_t h, t;
 
@@ -70,8 +68,8 @@ uint16_t mRecordQueue<T, MQ>::available(void)
   return MQ + h - t;
 }
 
-template <typename T, int MQ>
-void mRecordQueue<T, MQ>::clear(void)
+template <int MQ>
+void mRecordQueue<MQ>::clear(void)
 {
 	uint16_t t;
 
@@ -87,8 +85,8 @@ void mRecordQueue<T, MQ>::clear(void)
 	tail = t;
 }
 
-template <typename T, int MQ>
-T * mRecordQueue<T, MQ>::readBuffer(void)
+template <int MQ>
+void * mRecordQueue<MQ>::readBuffer(void)
 {
 	uint16_t t;
 
@@ -98,19 +96,19 @@ T * mRecordQueue<T, MQ>::readBuffer(void)
 	if (++t >= MQ) t = 0;
 	userblock = queue[t];
 	tail = t;
-	return userblock->data;
+	return (void *) userblock->data;
 }
 
-template <typename T, int MQ>
-void mRecordQueue<T, MQ>::freeBuffer(void)
+template <int MQ>
+void mRecordQueue<MQ>::freeBuffer(void)
 {
 	if (userblock == NULL) return;
 	release(userblock);
 	userblock = NULL;
 }
 
-template <typename T, int MQ>
-void mRecordQueue<T, MQ>::update(void)
+template <int MQ>
+void mRecordQueue<MQ>::update(void)
 {
 	audio_block_t *block;
 	uint16_t h;
