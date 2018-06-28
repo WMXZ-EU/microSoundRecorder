@@ -79,7 +79,8 @@
 #endif
 
 //==================== Environmental sensors ========================================
-
+// should be moved into own .h file
+//
 #if USE_ENVIRONMENTAL_SENSORS==1
 // test: write environmental variables into a text file
 // will be substituted with real sensor logging
@@ -498,7 +499,7 @@ extern "C" void loop() {
   static int16_t state=0; // 0: open new file, -1: last file
 
   int have_data=1;
-  for(int ii=0;ii<NCH;ii++) if(!queue[ii].available()) have_data=0;
+  for(int ii=0;ii<NCH;ii++) if(queue[ii].available()==0) have_data=0;
 
   if(have_data)
   { // have data on queue
@@ -514,14 +515,14 @@ extern "C" void loop() {
     //
     if(state==0)
     { // generate header before file is opened
-    #ifndef GEN_WAV_FILE // is declared in audio_logger_if.h
-       uint32_t *header=(uint32_t *) headerUpdate();
-       uint32_t *ptr=(uint32_t *) outptr;
-       // copy to disk buffer
-       for(int ii=0;ii<128;ii++) ptr[ii] = header[ii];
-       outptr+=256; //(512 bytes)
-    #endif
-       state=1;
+      #ifndef GEN_WAV_FILE // is declared in audio_logger_if.h
+         uint32_t *header=(uint32_t *) headerUpdate();
+         uint32_t *ptr=(uint32_t *) outptr;
+         // copy to disk buffer
+         for(int ii=0;ii<128;ii++) ptr[ii] = header[ii];
+         outptr+=256; //(512 bytes)
+      #endif
+      state=1;
     }
     // fetch data from queues
     int32_t * data[NCH];
@@ -533,15 +534,15 @@ extern "C" void loop() {
     {
       for(int jj=0; jj<NCH; jj++)
       {  *ptr++ = *data[jj]++;
-         if((uint32_t)ptr == ((uint32_t)diskBuffer+BUFFERSIZE))
+         if((uint32_t)ptr == ((uint32_t)(diskBuffer+BUFFERSIZE)))
          {
-           // flush diskBuffer
+            // flush diskBuffer
             if((state>=0) 
-                && ((snipParameters.thresh<0) 
-                #if MDEL >=0
-                  || (process1.getSigCount()>0)
-                #endif
-              ))
+                        && ((snipParameters.thresh<0) 
+                        #if MDEL >=0
+                          || (process1.getSigCount()>0)
+                        #endif
+                           ))
             {
               to=micros();
               state=uSD.write(diskBuffer,BUFFERSIZE); // this is blocking
