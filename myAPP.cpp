@@ -60,6 +60,16 @@
 // edits are to be done in the following config.h file
 #include "config.h"
 
+#if defined(__MK20DX256__)
+  #define M_QUEU 100 // number of buffers in aquisition queue
+#elif defined(__MK64FX512__)
+  #define M_QUEU 550 // number of buffers in aquisition queue
+#elif defined(__MK66FX1M0__)
+  #define M_QUEU 550 // number of buffers in aquisition queue
+#else
+  #define M_QUEU 53 // number of buffers in aquisition queue
+#endif
+
 //==================== Tympan audio board interface ========================================
 #if ACQ == _I2S_TYMPAN
   #include "src/Tympan.h"
@@ -96,6 +106,38 @@ BH1750 lightMeter;
 // connected to I2C, adress is 0x23 [if ADDR pin is NC or GND]
 // pin 18 - SDA
 // pin 19 - SCL
+
+void  enviro_setup(void)
+{
+  // begin communication with temperature/humidity sensor
+  // BME280 and set to default
+  // sampling, iirc, and standby settings
+  if (bme.begin() < 0) {
+    Serial.println("Error communicating with sensor, check wiring and I2C address");
+//    while(1){}
+  }
+
+  // adjust settings for temperature/humidity/pressure sensor
+  bme.setIirCoefficient(BME280::IIRC_OFF); // switch OFF IIR filter of sensor
+  bme.setForcedMode(); // set forced mode --> for long periods between measurements
+  // read the sensor
+  bme.readSensor();
+
+  temperature = bme.getTemperature_C();
+  pressure = bme.getPressure_Pa()/100.0f;
+  humidity = bme.getHumidity_RH();
+
+  lightMeter.begin(BH1750::ONE_TIME_HIGH_RES_MODE);
+
+  lux = lightMeter.readLightLevel();
+/*  // displaying the data
+  Serial.print(bme.getPressure_Pa()/100.0f,1);
+  Serial.print("\t");
+  Serial.print(bme.getTemperature_C(),2);
+  Serial.print("\t");
+  Serial.println(bme.getHumidity_RH(),2);
+*/  
+}
 #endif
 
 //==================== Audio interface ========================================
@@ -115,13 +157,13 @@ BH1750 lightMeter;
   AudioInputAnalog    acq(ADC_PIN);
 
   #define NCH 1
-  #define MQ (MQUEU/NCH)
+  #define mq (M_QUEU/NCH)
   #include "m_queue.h"
-  mRecordQueue<MQ> *queue = new mRecordQueue<MQ> [NCH];
+  mRecordQueue<mq> queue[NCH];
   
   #if MDEL>=0 
     #include "m_delay.h" 
-    mDelay<1,(MDEL+2)>  delay1(0); // have two buffers more in queue only to be safe 
+    mDelay<NCH,(MDEL+2)>  delay1(0); // have two buffers more in queue only to be safe 
   #endif 
     
   #include "mProcess.h" 
@@ -141,9 +183,9 @@ BH1750 lightMeter;
   AudioInputAnalogStereo  acq(ADC_PIN1,ADC_PIN2);
 
   #define NCH 2
-  #define MQ (MQUEU/NCH)
+  #define mq (M_QUEU/NCH)
   #include "m_queue.h"
-  mRecordQueue<MQ> *queue = new mRecordQueue<MQ> [NCH];
+  mRecordQueue<mq> queue[NCH];
 
   AudioConnection     patchCord1(acq,0, queue[0],0);
   AudioConnection     patchCord2(acq,1, queue[1],0);
@@ -153,9 +195,9 @@ BH1750 lightMeter;
   AudioInputI2S         acq;
 
   #define NCH 2
-  #define MQ (MQUEU/NCH)
+  #define mq (M_QUEU/NCH)
   #include "m_queue.h"
-  mRecordQueue<MQ> *queue = new mRecordQueue<MQ> [NCH];
+  mRecordQueue<mq> queue[NCH];
   
   AudioConnection     patchCord1(acq,0, queue[0],0);
   AudioConnection     patchCord2(acq,1, queue[1],0);
@@ -165,13 +207,13 @@ BH1750 lightMeter;
   I2S_32         acq;
 
   #define NCH 2
-  #define MQ (MQUEU/NCH)
+  #define mq (M_QUEU/NCH)
   #include "m_queue.h"
-  mRecordQueue<MQ> *queue = new mRecordQueue<MQ> [NCH];
+  mRecordQueue<mq> queue[NCH];
 
   #if MDEL>=0
     #include "m_delay.h"
-    mDelay<2,(MDEL+2)>  delay1(0); // have two buffers more in queue only to be safe
+    mDelay<NCH,(MDEL+2)>  delay1(0); // have two buffers more in queue only to be safe
   #endif
   
   #include "mProcess.h"
@@ -196,7 +238,7 @@ BH1750 lightMeter;
   AudioInputI2SQuad     acq;
   
   #define NCH 4
-  #define MQ (MQUEU/NCH)
+  #define MQ (M_QUEU/NCH)
   #include "m_queue.h"
   mRecordQueue<MQ> *queue = new mRecordQueue<MQ> [NCH];
 
@@ -210,13 +252,13 @@ BH1750 lightMeter;
   I2S_32         acq;
 
   #define NCH 1
-  #define MQ (MQUEU/NCH)
+  #define mq (M_QUEU/NCH)
   #include "m_queue.h"
-  mRecordQueue<MQ> *queue = new mRecordQueue<MQ> [NCH];
+  mRecordQueue<mq> queue[NCH];
  
   #if MDEL>=0
     #include "m_delay.h"
-    mDelay<1,(MDEL+2)>  delay1(0); // have two buffers more in queue only to be safe
+    mDelay<NCH,(MDEL+2)>  delay1(0); // have two buffers more in queue only to be safe
   #endif
   
   #include "mProcess.h"
@@ -235,13 +277,13 @@ BH1750 lightMeter;
   AudioInputI2S         acq;
 
   #define NCH 2
-  #define MQ (MQUEU/NCH)
+  #define mq (M_QUEU/NCH)
   #include "m_queue.h"
-  mRecordQueue<MQ> *queue = new mRecordQueue<MQ> [NCH];
+  mRecordQueue<mq> queue[NCH];
 
   #if MDEL>=0
     #include "m_delay.h"
-    mDelay<2,(MDEL+2)>  delay1(0); // have two buffers more in queue only to be safe
+    mDelay<NCH,(MDEL+2)>  delay1(0); // have two buffers more in queue only to be safe
     #include "mProcess.h"
     mProcess process1(&snipParameters);
   #endif
@@ -260,14 +302,14 @@ BH1750 lightMeter;
     AudioConnection     patchCord6(delay1,1, queue[1],0);
   #endif
   
-#elif ACQ == _I2S_TDM // not yet modified for event detections
+#elif ACQ == _I2S_TDM       // not yet modified for event detections and delays
   #include "i2s_tdm.h"
   I2S_TDM         acq;
   
   #define NCH 5
-  #define MQ (MQUEU/NCH)
+  #define mq (M_QUEU/NCH)
   #include "m_queue.h"
-  mRecordQueue<MQ> *queue = new mRecordQueue<MQ> [NCH];
+  mRecordQueue<mq> queue[NCH];
 
   #if MDEL >=0
     #undef MDEL
@@ -316,11 +358,13 @@ extern void rtc_set(unsigned long t);
 //__________________________General Arduino Routines_____________________________________
 
 extern "C" void setup() {
+  // put your setup code here, to run once:
   int16_t nsec;
 
 #if DO_DEBUG>0
-  while(!Serial);
-  Serial.println("microSoundRecorder");
+   while(!Serial);
+   Serial.println("microSoundRecorder");
+   Serial.printf("%d %d\r\n",M_QUEU, mq);
 #endif
 /*
 // this reads the Teensy internal temperature sensor
@@ -333,42 +377,9 @@ extern "C" void setup() {
   temperature = -0.0293 * analogRead(70) + 440.5;
 */
 
-#if USE_ENVIRONMENTAL_SENSORS==1
-  // begin communication with temperature/humidity sensor
-  // BME280 and set to default
-  // sampling, iirc, and standby settings
-  if (bme.begin() < 0) {
-    Serial.println("Error communicating with sensor, check wiring and I2C address");
-//    while(1){}
-  }
-
-  // adjust settings for temperature/humidity/pressure sensor
-  bme.setIirCoefficient(BME280::IIRC_OFF); // switch OFF IIR filter of sensor
-  bme.setForcedMode(); // set forced mode --> for long periods between measurements
-  // read the sensor
-  bme.readSensor();
-
-  temperature = bme.getTemperature_C();
-  pressure = bme.getPressure_Pa()/100.0f;
-  humidity = bme.getHumidity_RH();
-
-  lightMeter.begin(BH1750::ONE_TIME_HIGH_RES_MODE);
-
-  lux = lightMeter.readLightLevel();
-/*  // displaying the data
-  Serial.print(bme.getPressure_Pa()/100.0f,1);
-  Serial.print("\t");
-  Serial.print(bme.getTemperature_C(),2);
-  Serial.print("\t");
-  Serial.println(bme.getHumidity_RH(),2);
-*/  
-#endif
-  
-  //
-  // put your setup code here, to run once:
   pinMode(3,INPUT_PULLUP); // needed to enter menu if grounded
 
-#define MAUDIO (MQUEU+MDEL+50)
+#define MAUDIO (M_QUEU+MDEL+50)
 	AudioMemory (MAUDIO); // 600 blocks use about 200 kB (requires Teensy 3.6)
 
   // stop I2S early (to be sure)
@@ -393,6 +404,7 @@ extern "C" void setup() {
   uSD.loadConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
 
 #if USE_ENVIRONMENTAL_SENSORS==1
+   enviro_setup();
   // write temperature, pressure and humidity to SD card
    uSD.writeTemperature(temperature, pressure, humidity, lux);
 #endif

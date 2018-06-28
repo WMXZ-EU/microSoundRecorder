@@ -61,7 +61,6 @@
   #define DIFF 0
 #endif
 
-#define MQUEU 550   // number of buffers in aquisition queue //<<<======>>>
 #define MDEL -1     // maximal delay in buffer counts (128/fs each; for fs= 48 kHz: 128/48 = 2.5 ms each) //<<<======>>>
                     // MDEL == -1 conects ACQ interface directly to mux and queue
 
