@@ -63,7 +63,7 @@
 #if defined(__MK20DX256__)
   #define M_QUEU 100 // number of buffers in aquisition queue
 #elif defined(__MK64FX512__)
-  #define M_QUEU 550 // number of buffers in aquisition queue
+  #define M_QUEU 250 // number of buffers in aquisition queue
 #elif defined(__MK66FX1M0__)
   #define M_QUEU 550 // number of buffers in aquisition queue
 #else
@@ -154,10 +154,11 @@ void  enviro_setup(void)
  */
 
 #if (ACQ == _ADC_0) || (ACQ == _ADC_D)
+  #define NCH 1
+  
   #include "input_adc.h"
   AudioInputAnalog    acq(ADC_PIN);
 
-  #define NCH 1
   #define mq (M_QUEU/NCH)
   #include "m_queue.h"
   mRecordQueue<mq> queue[NCH];
@@ -170,20 +171,20 @@ void  enviro_setup(void)
   #include "mProcess.h" 
   mProcess process1(&snipParameters); 
  
+  AudioConnection     patchCord2(acq, process1); 
   #if MDEL <0 
-    AudioConnection     patchCord2(acq, process1); 
     AudioConnection     patchCord1(acq, queue[0]); 
   #else 
-    AudioConnection     patchCord1(acq, process1); 
     AudioConnection     patchCord2(acq, delay1); 
     AudioConnection     patchCord3(delay1, queue[0]); 
   #endif 
 
 #elif ACQ == _ADC_S
+  #define NCH 2
+
   #include "input_adcs.h"
   AudioInputAnalogStereo  acq(ADC_PIN1,ADC_PIN2);
 
-  #define NCH 2
   #define mq (M_QUEU/NCH)
   #include "m_queue.h"
   mRecordQueue<mq> queue[NCH];
@@ -192,10 +193,11 @@ void  enviro_setup(void)
   AudioConnection     patchCord2(acq,1, queue[1],0);
 
 #elif (ACQ == _I2S)
+  #define NCH 2
+  
   #include "input_i2s.h"
   AudioInputI2S         acq;
 
-  #define NCH 2
   #define mq (M_QUEU/NCH)
   #include "m_queue.h"
   mRecordQueue<mq> queue[NCH];
@@ -235,10 +237,11 @@ void  enviro_setup(void)
   #endif
   
 #elif ACQ == _I2S_QUAD
+  #define NCH 4
+  
   #include "input_i2s_quad.h"
   AudioInputI2SQuad     acq;
   
-  #define NCH 4
   #define MQ (M_QUEU/NCH)
   #include "m_queue.h"
   mRecordQueue<MQ> *queue = new mRecordQueue<MQ> [NCH];
@@ -249,10 +252,11 @@ void  enviro_setup(void)
   AudioConnection     patchCord4(acq,3, queue[3],0);
 
 #elif ACQ == _I2S_32_MONO
+  #define NCH 1
+  
   #include "i2s_32.h"
   I2S_32         acq;
 
-  #define NCH 1
   #define mq (M_QUEU/NCH)
   #include "m_queue.h"
   mRecordQueue<mq> queue[NCH];
@@ -274,10 +278,11 @@ void  enviro_setup(void)
   #endif
 
 #elif ACQ == _I2S_TYMPAN
+  #define NCH 2
+
   #include "input_i2s.h"
   AudioInputI2S         acq;
 
-  #define NCH 2
   #define mq (M_QUEU/NCH)
   #include "m_queue.h"
   mRecordQueue<mq> queue[NCH];
@@ -304,10 +309,12 @@ void  enviro_setup(void)
   #endif
   
 #elif ACQ == _I2S_TDM       // not yet modified for event detections and delays
+
+  #define NCH 5 // if changing number of channels adapt Audio connections  // NCH must be less or equal than 8
+  
   #include "i2s_tdm.h"
   I2S_TDM         acq;
   
-  #define NCH 5
   #define mq (M_QUEU/NCH)
   #include "m_queue.h"
   mRecordQueue<mq> queue[NCH];
@@ -365,7 +372,6 @@ extern "C" void setup() {
 #if DO_DEBUG>0
    while(!Serial);
    Serial.println("microSoundRecorder");
-   Serial.printf("%d %d\r\n",M_QUEU, mq);
 #endif
 /*
 // this reads the Teensy internal temperature sensor

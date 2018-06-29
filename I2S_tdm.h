@@ -33,7 +33,7 @@
 #include "AudioStream.h"
 #include "DMAChannel.h"
 
-#define NBL 5
+#define NBL NCH
 #define MBL 8
 
 class I2S_TDM : public AudioStream
