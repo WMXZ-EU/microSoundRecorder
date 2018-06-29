@@ -420,6 +420,8 @@ extern "C" void setup() {
   int ret;
   if(!digitalReadFast(3))
   { ret=doMenu();
+    if(ret<0) ;  // should shutdown now (not implemented) // keep compiler happy
+      
     // should here save parameters to disk if modified
     uSD.storeConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
   }

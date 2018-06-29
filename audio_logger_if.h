@@ -141,12 +141,12 @@ uint32_t tm2seconds (struct tm *tx)
   uint32_t days=tx->tm_mday-1;
 
   uint32_t mm=0;
-  uint32_t monthLength=0;
-  for (mm=0; mm<(tx->tm_mon-1); mm++) days+=monthDays[mm]; 
+  //uint32_t monthLength=0;
+  for (mm=0; mm<(uint32_t)(tx->tm_mon-1); mm++) days+=monthDays[mm]; 
   if(tx->tm_mon>2 && LEAP_YEAR(tx->tm_year-1970)) days++;
 
   uint32_t years=0;
-  while(years++ < (tx->tm_year-1970)) days += (LEAP_YEAR(years) ? 366 : 365);
+  while(years++ < (uint32_t)(tx->tm_year-1970)) days += (LEAP_YEAR(years) ? 366 : 365);
   //  
   tt+=(days*24*3600);
   return tt;
@@ -253,7 +253,7 @@ int16_t c_uSD::write(int16_t *data, int32_t ndat)
   if(state == 1 || state == 2)
   {  // write to disk
     state=2;
-    if (2*ndat != file.write((char *) data, 2*ndat)) sd.errorHalt("file.write data failed");
+    if (2*ndat != (int32_t) file.write((char *) data, 2*ndat)) sd.errorHalt("file.write data failed");
     nbuf++;
     if(closing) {closing=0; state=3;}
   }
@@ -286,11 +286,11 @@ void c_uSD::storeConfig(uint32_t * param1, int n1, int32_t *param2, int n2)
 { char text[32];
   file.open("Config.txt", O_CREAT|O_WRITE|O_TRUNC);
   for(int ii=0; ii<n1; ii++)
-  { sprintf(text,"%10d\r\n",param1[ii]); file.write((uint8_t*)text,strlen(text));
+  { sprintf(text,"%10d\r\n",(int) param1[ii]); file.write((uint8_t*)text,strlen(text));
   }
 //
   for(int ii=0; ii<n2; ii++)
-  { sprintf(text,"%10d\r\n",param2[ii]); file.write((uint8_t*)text,strlen(text));
+  { sprintf(text,"%10d\r\n",(int) param2[ii]); file.write((uint8_t*)text,strlen(text));
   }
   sprintf(text,"%s\r\n",(char*) &param1[n1]);
   file.write((uint8_t *)text,6);
@@ -305,10 +305,10 @@ void c_uSD::loadConfig(uint32_t * param1, int n1, int32_t *param2, int n2)
   if(!file.open("Config.txt",O_RDONLY)) return;
   //
   for(int ii=0; ii<n1; ii++)
-  { if(file.read((uint8_t*)text,12)); sscanf(text,"%d",&param1[ii]);
+  { if(file.read((uint8_t*)text,12)); sscanf(text,"%d",(int *) &param1[ii]);
   }
   for(int ii=0; ii<n2; ii++)
-  { if(file.read((uint8_t*)text,12)); sscanf(text,"%d",&param2[ii]);
+  { if(file.read((uint8_t*)text,12)); sscanf(text,"%d", (int *)&param2[ii]);
   }
   if(file.read((uint8_t *)text,6))
   { text[5]=0;
