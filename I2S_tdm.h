@@ -110,7 +110,8 @@ void I2S_TDM::isr(void)
 	if (block_incoming[0] != NULL) {
 		for(ii=0;ii<AUDIO_BLOCK_SAMPLES;ii++)
 		{
-			for(int jj=0; jj<NBL; jj++) { block_incoming[jj]->data[ii] = (int16_t) ((*src++)>>I2S_TDM::shift);}
+			for(int jj=0; jj<NBL; jj++) { block_incoming[jj]->data[ii] = (int16_t) ((*src)>>I2S_TDM::shift); src++;}
+			src +=(MBL-NBL); // skip the empty data fields
 		}
 	}
 	if (update_responsibility) update_all();
