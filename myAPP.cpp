@@ -155,7 +155,6 @@ void  enviro_setup(void)
 
 #if (ACQ == _ADC_0) || (ACQ == _ADC_D)
   #define NCH 1
-  
   #include "input_adc.h"
   AudioInputAnalog    acq(ADC_PIN);
 
@@ -393,7 +392,6 @@ extern "C" void setup() {
   #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
     I2S_stop();
   #endif
-
 //  ledOn();
 //  while(!Serial);
 //  while(!Serial && (millis()<3000));

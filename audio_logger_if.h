@@ -323,7 +323,7 @@ void c_uSD::loadConfig(uint32_t * param1, int n1, int32_t *param2, int n2)
 
 // FILE STRUCTURE
 // table with following columns
-// date | time | temperature | pressure | humidity
+// date | time | temperature | pressure | humidity | lux
 
 // O_EXCL : Ensure that this call creates the file: if this flag is specified in conjunction with O_CREAT, 
 //          and pathname already exists, then open() will fail. The behavior of O_EXCL is undefined if O_CREAT is not specified. 
