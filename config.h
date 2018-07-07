@@ -1,4 +1,4 @@
-/* Audio Logger for Teensy 3.6
+/* Sound Recorder for Teensy 3.6
  * Copyright (c) 2018, Walter Zimmer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,8 +22,9 @@
 
  /*********************** Begin possible User Modifications ********************************/
 // possible modifications are marked with //<<<======>>>
+//
 //----------------------------------------------------------------------------------------
-#define DO_DEBUG 1 // print debug info over serial line  //<<<======>>>
+#define DO_DEBUG 1 // print debug info over usb-serial line  //<<<======>>>
 
 #define F_SAMP 250000 // desired sampling frequency  //<<<======>>>
 /*
@@ -33,7 +34,7 @@
  */
 
 ////////////////////////////////////////////////////////////
-
+// ------------------------- Acquisition interface control ----------------------------
 // possible ACQ interfaces
 #define _ADC_0          0 // single ended ADC0
 #define _ADC_D          1 // differential ADC0
@@ -43,7 +44,7 @@
 #define _I2S_QUAD       5 // I2S (16 bit quad audio)
 #define _I2S_32_MONO    6 // I2S (32 bit mono audio), eg. one ICS43434 mic
 #define _I2S_TYMPAN     7 // I2S (16 bit tympan stereo audio audio) for use the tympan board
-#define _I2S_TDM        8 // I2S (8 channel TDM) 
+#define _I2S_TDM        8 // I2S (8 channel TDM) // only first 5 channels are used (modify myAcq.h if less or more channels)
 
 #define ACQ  _ADC_0   // selected acquisition interface  //<<<======>>>
 
@@ -52,7 +53,7 @@
   #define ADC_PIN A2 // can be changed  //<<<======>>>
   #define DIFF 0
 #elif ACQ == _ADC_D
-  #define ADC_PIN A10 //fixed
+  #define ADC_PIN A10 //fixed analog pin
   #define DIFF 1
 #elif ACQ == _ADC_S
   #define ADC_PIN1 A2 // can be changed //<<<======>>>
@@ -60,15 +61,14 @@
   #define DIFF 0
 #endif
 
-#define MQUEU 550 // number of buffers in aquisition queue
-#define MDEL -1    // maximal delay in buffer counts (128/fs each; for fs= 48 kHz: 128/48 = 2.5 ms each) //<<<======>>>
-                  // MDEL == -1 conects ACQ interface directly to mux and queue
+#define MDEL -1     // maximal delay in buffer counts (128/fs each; for fs= 48 kHz: 128/48 = 2.5 ms each) //<<<======>>>
+                    // MDEL == -1 conects ACQ interface directly to mux and queue
 
 #define GEN_WAV_FILE  // generate wave files, if undefined generate raw data (with 512 byte header) //<<<======>>>
 
 /****************************************************************************************/
 // some structures to be used for controllong acquisition
-// scheduled acquisition
+// -----------------------scheduled acquisition------------------------------------------
 typedef struct
 { uint32_t on;  // acquisition on time in seconds
   uint32_t ad;  // acquisition file size in seconds
@@ -100,7 +100,7 @@ ACQ_Parameters_s acqParameters = { 30, 10, 60, 0, 12, 12, 24, 0, "NEW1"}; //<<<=
 
 int16_t mustClose = -1;// initial value (can be -1: ignore event trigger or 0: implement event trigger) //<<<======>>>
 
-// snippet extraction modul
+//---------------------------------- snippet extraction modul ---------------------------------------------
 typedef struct
 {  int32_t iproc;      // type of detection rocessor (0: high-pass-threshold; 1: Taeger-Kaiser-Operator)
    int32_t thresh;     // power SNR for snippet detection (-1: disable snippet extraction)
@@ -114,14 +114,17 @@ typedef struct
 
 SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL}; //<<<======>>>
 
+//-------------------------- hibernate control---------------------------------------------------------------
 // The following two lines control the maximal hibernate (sleep) duration
 // this may be useful when using a powerbank, or other cases where frequent booting is desired
 // is used in audio_hibernate.h
 //#define SLEEP_SHORT             // comment when sleep duration is not limited   //<<<======>>>
 #define ShortSleepDuration 60   // value in seconds     //<<<======>>>
 
+//------------------------- Additional sensors ---------------------------------------------------------------
 #define USE_ENVIRONMENTAL_SENSORS 0 // to use environmental sensors set to 1 otherwise set to 0  //<<<======>>>
 
+//------------------------- special Hardware configuration ----------------------------------------------------
 #if ACQ == _I2S_TYMPAN
   #undef USE_ENVIRONMENTAL_SENSORS
   #define USE_ENVIRONMENTAL_SENSORS 0 // for tympan switch off environmental sensors

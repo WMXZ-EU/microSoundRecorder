@@ -33,7 +33,7 @@
 #include "AudioStream.h"
 #include "DMAChannel.h"
 
-#define NBL 5
+#define NBL NCH
 #define MBL 8
 
 class I2S_TDM : public AudioStream
@@ -108,9 +108,10 @@ void I2S_TDM::isr(void)
 		src = &tdm_rx_buffer[0];
 	}
 	if (block_incoming[0] != NULL) {
-		for(ii=0;ii<NBL;ii++)
+		for(ii=0;ii<AUDIO_BLOCK_SAMPLES;ii++)
 		{
-			for(int jj=0; jj<AUDIO_BLOCK_SAMPLES; jj++) { block_incoming[ii]->data[jj] = (int16_t) ((*src)>>I2S_TDM::shift); src+=MBL;}
+			for(int jj=0; jj<NBL; jj++) { block_incoming[jj]->data[ii] = (int16_t) ((*src)>>I2S_TDM::shift); src++;}
+			src +=(MBL-NBL); // skip the empty data fields
 		}
 	}
 	if (update_responsibility) update_all();

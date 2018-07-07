@@ -1,4 +1,4 @@
-/* Audio Logger for Teensy 3.6
+/* Sound Recorder for Teensy 3.6
  * Copyright (c) 2018, Walter Zimmer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -251,7 +251,7 @@ static void doMenu2(void)
     int T1=acqParameters.T1;
     int T2=acqParameters.T2;
     int T3=acqParameters.T3;
-    int T4=acqParameters.T4;
+    //int T4=acqParameters.T4; mot used
     //
     while(!Serial.available());
     char c=Serial.read();

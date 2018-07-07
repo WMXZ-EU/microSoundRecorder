@@ -1,4 +1,4 @@
-/* Audio Logger for Teensy 3.6
+/* Sound Recorder for Teensy 3.6
  * Copyright (c) 2018, Walter Zimmer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -45,7 +45,7 @@ const uint64_t PRE_ALLOCATE_SIZE = 40ULL << 20;
 
 //#define MAXFILE 100
 //#define MAXBUF 1000
-#define BUFFERSIZE (8*1024)
+#define BUFFERSIZE (8*8*128)
 int16_t diskBuffer[BUFFERSIZE];
 int16_t *outptr = diskBuffer;
 
@@ -141,12 +141,12 @@ uint32_t tm2seconds (struct tm *tx)
   uint32_t days=tx->tm_mday-1;
 
   uint32_t mm=0;
-  uint32_t monthLength=0;
-  for (mm=0; mm<(tx->tm_mon-1); mm++) days+=monthDays[mm]; 
+  //uint32_t monthLength=0;
+  for (mm=0; mm<(uint32_t)(tx->tm_mon-1); mm++) days+=monthDays[mm]; 
   if(tx->tm_mon>2 && LEAP_YEAR(tx->tm_year-1970)) days++;
 
   uint32_t years=0;
-  while(years++ < (tx->tm_year-1970)) days += (LEAP_YEAR(years) ? 366 : 365);
+  while(years++ < (uint32_t)(tx->tm_year-1970)) days += (LEAP_YEAR(years) ? 366 : 365);
   //  
   tt+=(days*24*3600);
   return tt;
@@ -193,51 +193,30 @@ char * wavHeader(uint32_t fileSize)
 {
 //  int fsamp=48000;
   int fsamp = F_SAMP;
-/*
-#define _ADC_0          0 // single ended ADC0
-#define _ADC_D          1 // differential ADC0
-#define _ADC_S          2 // stereo ADC0 and ADC1
-#define _I2S            3 // I2S (16 bit stereo audio)
-#define _I2S_32         4 // I2S (32 bit stereo audio), eg. two ICS43434 mics
-#define _I2S_QUAD       5 // I2S (16 bit quad audio)
-#define _I2S_32_MONO    6 // I2S (32 bit mono audio), eg. one ICS43434 mic
-#define _I2S_TYMPAN     7 // I2S (16 bit tympan stereo audio audio) for use the tympan board
-#define _I2S_TDM        8 // I2S (8 channel TDM) 
- */
-  int nchan=2; // most modes are STEREO modes
-  // for the other modes change no. of channels
-#if ACQ == _ADC_0 || ACQ == _ADC_D || ACQ == _I2S_32_MONO   
-  nchan=1;
-#endif  
-#if ACQ == _I2S_QUAD
-  nchan=4;
-#endif
-#if ACQ == _I2S_TDM
-  nchan=8;  
-#endif
+  int nchan=NCH;
 
   int nbits=16;
   int nbytes=nbits/8;
 
   int nsamp=(fileSize-44)/(nbytes*nchan);
   //
-  static char header[48]; // 44 for wav
+  static char wheader[48]; // 44 for wav
   //
-  strcpy(header,"RIFF");
-  strcpy(header+8,"WAVE");
-  strcpy(header+12,"fmt ");
-  strcpy(header+36,"data");
-  *(int32_t*)(header+16)= 16;// chunk_size
-  *(int16_t*)(header+20)= 1; // PCM 
-  *(int16_t*)(header+22)=nchan;// numChannels 
-  *(int32_t*)(header+24)= fsamp; // sample rate 
-  *(int32_t*)(header+28)= fsamp*nbytes; // byte rate
-  *(int16_t*)(header+32)=nchan*nbytes; // block align
-  *(int16_t*)(header+34)=nbits; // bits per sample 
-  *(int32_t*)(header+40)=nsamp*nchan*nbytes; 
-  *(int32_t*)(header+4)=36+nsamp*nchan*nbytes; 
+  strcpy(wheader,"RIFF");
+  strcpy(wheader+8,"WAVE");
+  strcpy(wheader+12,"fmt ");
+  strcpy(wheader+36,"data");
+  *(int32_t*)(wheader+16)= 16;// chunk_size
+  *(int16_t*)(wheader+20)= 1; // PCM 
+  *(int16_t*)(wheader+22)=nchan;// numChannels 
+  *(int32_t*)(wheader+24)= fsamp; // sample rate 
+  *(int32_t*)(wheader+28)= fsamp*nbytes; // byte rate
+  *(int16_t*)(wheader+32)=nchan*nbytes; // block align
+  *(int16_t*)(wheader+34)=nbits; // bits per sample 
+  *(int32_t*)(wheader+40)=nsamp*nchan*nbytes; 
+  *(int32_t*)(wheader+4)=36+nsamp*nchan*nbytes; 
 
-   return header;
+   return wheader;
 }
 //____________________________ FS Interface implementation______________________
 void c_uSD::init()
@@ -262,12 +241,8 @@ int16_t c_uSD::write(int16_t *data, int32_t ndat)
     char *filename = makeFilename(name);
     if(!filename) {state=-1; return state;} // flag to do not anything
     //
-    if (!file.open(filename, O_CREAT | O_TRUNC |O_RDWR)) 
-    {  sd.errorHalt("file.open failed");
-    }
-    if (!file.preAllocate(PRE_ALLOCATE_SIZE)) 
-    { sd.errorHalt("file.preAllocate failed");    
-    }
+    if (!file.open(filename, O_CREAT | O_TRUNC |O_RDWR)) sd.errorHalt("file.open failed");
+    if (!file.preAllocate(PRE_ALLOCATE_SIZE)) sd.errorHalt("file.preAllocate failed");
     #ifdef  GEN_WAV_FILE // keep first record
           memcpy(header,(const char *)data,512);
     #endif
@@ -278,7 +253,7 @@ int16_t c_uSD::write(int16_t *data, int32_t ndat)
   if(state == 1 || state == 2)
   {  // write to disk
     state=2;
-    if (2*ndat != file.write((char *) data, 2*ndat)) sd.errorHalt("file.write data failed");
+    if (2*ndat != (int32_t) file.write((char *) data, 2*ndat)) sd.errorHalt("file.write data failed");
     nbuf++;
     if(closing) {closing=0; state=3;}
   }
@@ -311,11 +286,11 @@ void c_uSD::storeConfig(uint32_t * param1, int n1, int32_t *param2, int n2)
 { char text[32];
   file.open("Config.txt", O_CREAT|O_WRITE|O_TRUNC);
   for(int ii=0; ii<n1; ii++)
-  { sprintf(text,"%10d\r\n",param1[ii]); file.write((uint8_t*)text,strlen(text));
+  { sprintf(text,"%10d\r\n",(int) param1[ii]); file.write((uint8_t*)text,strlen(text));
   }
 //
   for(int ii=0; ii<n2; ii++)
-  { sprintf(text,"%10d\r\n",param2[ii]); file.write((uint8_t*)text,strlen(text));
+  { sprintf(text,"%10d\r\n",(int) param2[ii]); file.write((uint8_t*)text,strlen(text));
   }
   sprintf(text,"%s\r\n",(char*) &param1[n1]);
   file.write((uint8_t *)text,6);
@@ -330,10 +305,10 @@ void c_uSD::loadConfig(uint32_t * param1, int n1, int32_t *param2, int n2)
   if(!file.open("Config.txt",O_RDONLY)) return;
   //
   for(int ii=0; ii<n1; ii++)
-  { if(file.read((uint8_t*)text,12)); sscanf(text,"%d",&param1[ii]);
+  { if(file.read((uint8_t*)text,12)); sscanf(text,"%d",(int *) &param1[ii]);
   }
   for(int ii=0; ii<n2; ii++)
-  { if(file.read((uint8_t*)text,12)); sscanf(text,"%d",&param2[ii]);
+  { if(file.read((uint8_t*)text,12)); sscanf(text,"%d", (int *)&param2[ii]);
   }
   if(file.read((uint8_t *)text,6))
   { text[5]=0;
