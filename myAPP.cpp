@@ -531,16 +531,16 @@ extern "C" void loop() {
       state=1;
     }
     // fetch data from queues
-    int32_t * data[NCH];
-    for(int ii=0; ii<NCH; ii++) data[ii] = (int32_t *)queue[ii].readBuffer();
+    int16_t * data[NCH];
+    for(int ii=0; ii<NCH; ii++) data[ii] = (int16_t *)queue[ii].readBuffer();
     //
     // copy to disk buffer
-    uint32_t *ptr=(uint32_t *) outptr;
-    for(int ii=0;ii<64;ii++) 
+    uint16_t *ptr=(uint16_t *) outptr;
+    for(int ii=0;ii<AUDIO_BLOCK_SAMPLES;ii++) 
     {
       for(int jj=0; jj<NCH; jj++)
       {  *ptr++ = *data[jj]++;
-         if((uint32_t)ptr == ((uint32_t)(diskBuffer+BUFFERSIZE)))
+         if(ptr == ((uint16_t*)(diskBuffer+BUFFERSIZE)))
          {
             // flush diskBuffer
             if((state>=0) 
@@ -556,7 +556,7 @@ extern "C" void loop() {
               t2=t1-to;
               if(t2<t3) t3=t2; // accumulate some time statistics
               if(t2>t4) t4=t2;
-              ptr=(uint32_t *)diskBuffer;
+              ptr=(uint16_t *)diskBuffer;
             }
          }
       }
