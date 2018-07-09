@@ -143,8 +143,8 @@ void mProcess::update(void)
   
   blockCount++;
   
-  tmp1=allocate();
-  tmp2=allocate();
+  if(inp1) tmp1=allocate(); else tmp1=0;
+  if(inp2) tmp2=allocate(); else tmp2=0;
 
   // store data and release input buffers
   for(int ii=0; ii< AUDIO_BLOCK_SAMPLES; ii++)
@@ -163,14 +163,30 @@ void mProcess::update(void)
   int16_t ndat = AUDIO_BLOCK_SAMPLES;
   //
   // first channel
-  mDiff(aux, tmp1->data, ndat, 0);//out1? out1->data[ndat-1]: tmp1->data[0]);
-  max1Val = mSig(aux, ndat);
-  avg1Val = avg(aux, ndat);
+  if(tmp1)
+  {
+    mDiff(aux, tmp1->data, ndat, 0);//out1? out1->data[ndat-1]: tmp1->data[0]);
+    max1Val = mSig(aux, ndat);
+    avg1Val = avg(aux, ndat);
+  }
+  else
+  {
+    max1Val = 0;
+    avg1Val = 0;
+  }
   
   // second channel
-  mDiff(aux, tmp2->data, ndat, 0);//out2? out2->data[ndat-1]: tmp2->data[0]);
-  max2Val = mSig(aux, ndat);
-  avg2Val = avg(aux, ndat);
+  if(tmp2)
+  {
+    mDiff(aux, tmp2->data, ndat, 0);//out2? out2->data[ndat-1]: tmp2->data[0]);
+    max2Val = mSig(aux, ndat);
+    avg2Val = avg(aux, ndat);
+  }
+  else
+  {
+    max2Val = 0;
+    avg2Val = 0;
+  }
   
   //
   // if threshold detector fires, the open transmisssion of input data for "extr"
