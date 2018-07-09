@@ -411,12 +411,12 @@ extern "C" void loop() {
     for(int ii=0; ii<NCH; ii++) data[ii] = (int16_t *)queue[ii].readBuffer();
     //
     // copy to disk buffer
-    uint16_t *ptr=(uint16_t *) outptr;
+    int16_t *ptr=(int16_t *) outptr;
     for(int ii=0;ii<AUDIO_BLOCK_SAMPLES;ii++) 
     {
       for(int jj=0; jj<NCH; jj++)
       {  *ptr++ = *data[jj]++;
-         if((uint16_t)ptr == ((uint16_t)(diskBuffer+BUFFERSIZE)))
+         if(ptr == (int16_t *)((diskBuffer+BUFFERSIZE)))
          {
             // flush diskBuffer
             if((state>=0) 
@@ -432,7 +432,7 @@ extern "C" void loop() {
               t2=t1-to;
               if(t2<t3) t3=t2; // accumulate some time statistics
               if(t2>t4) t4=t2;
-              ptr=(uint16_t *)diskBuffer;
+              ptr=(int16_t *)diskBuffer;
             }
          }
       }

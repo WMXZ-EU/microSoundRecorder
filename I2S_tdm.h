@@ -98,7 +98,7 @@ void I2S_TDM::isr(void)
 	daddr = (uint32_t)(dma.TCD->DADDR);
 	dma.clearInterrupt();
 
-	if (daddr < &tdm_rx_buffer[AUDIO_BLOCK_SAMPLES*MBL] 
+	if (daddr < (uint32_t)&tdm_rx_buffer[AUDIO_BLOCK_SAMPLES*MBL])
 	{	// DMA is receiving to the first half of the buffer
 		// need to remove data from the second half
 		src = &tdm_rx_buffer[AUDIO_BLOCK_SAMPLES*MBL];
