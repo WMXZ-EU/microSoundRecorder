@@ -54,6 +54,9 @@
  * WMXZ 23-Jun-2018
  * Added support for TDM I2S interface
  * 
+ * WMXZ 01-Jul-2018
+ * aligned acoustic interfaces
+ * moved enviromental interface to own include file
  */
 #include "core_pins.h" // this call also kinetis.h
 
@@ -79,66 +82,8 @@
 #endif
 
 //==================== Environmental sensors ========================================
-// should be moved into own .h file
-//
 #if USE_ENVIRONMENTAL_SENSORS==1
-// test: write environmental variables into a text file
-// will be substituted with real sensor logging
-  float temperature = 20.4;
-  float pressure = 1014.1;
-  float humidity = 90.3;
-  uint16_t lux = 99;
-
-// temperature sensor /////////////////////////////////////
-#include "BME280.h"
-
-// connected to I2C
-// pin 18 - SDA
-// pin 19 - SCL 
-/* A BME280 object with I2C address 0x76 (SDO to GND) */
-/* on Teensy I2C bus 0 */
-BME280 bme(Wire,0x76);
-////////////////////////////////////////////////////////////
-
-// Light sensor /////////////////////////////////////
-#include <BH1750.h>
-
-BH1750 lightMeter;
-// connected to I2C, adress is 0x23 [if ADDR pin is NC or GND]
-// pin 18 - SDA
-// pin 19 - SCL
-
-void  enviro_setup(void)
-{
-  // begin communication with temperature/humidity sensor
-  // BME280 and set to default
-  // sampling, iirc, and standby settings
-  if (bme.begin() < 0) {
-    Serial.println("Error communicating with sensor, check wiring and I2C address");
-//    while(1){}
-  }
-
-  // adjust settings for temperature/humidity/pressure sensor
-  bme.setIirCoefficient(BME280::IIRC_OFF); // switch OFF IIR filter of sensor
-  bme.setForcedMode(); // set forced mode --> for long periods between measurements
-  // read the sensor
-  bme.readSensor();
-
-  temperature = bme.getTemperature_C();
-  pressure = bme.getPressure_Pa()/100.0f;
-  humidity = bme.getHumidity_RH();
-
-  lightMeter.begin(BH1750::ONE_TIME_HIGH_RES_MODE);
-
-  lux = lightMeter.readLightLevel();
-/*  // displaying the data
-  Serial.print(bme.getPressure_Pa()/100.0f,1);
-  Serial.print("\t");
-  Serial.print(bme.getTemperature_C(),2);
-  Serial.print("\t");
-  Serial.println(bme.getHumidity_RH(),2);
-*/  
-}
+  #include "enviro.h"
 #endif
 
 //==================== Audio interface ========================================
@@ -152,11 +97,17 @@ void  enviro_setup(void)
  * use if different data type requires modification to AudioStream
  * type "int16_t" is compatible with stock AudioStream
  */
-
-#if (ACQ == _ADC_0) || (ACQ == _ADC_D)
+/*-------------------------- mono (single channel) -----------------------------*/
+#if (ACQ == _ADC_0) || (ACQ == _ADC_D) || (ACQ == _I2S_32_MONO)
   #define NCH 1
-  #include "input_adc.h"
-  AudioInputAnalog    acq(ADC_PIN);
+
+  #if (ACQ == _ADC_0) || (ACQ == _ADC_D)
+    #include "input_adc.h"
+    AudioInputAnalog    acq(ADC_PIN);
+  #elif (ACQ == _I2S_32_MONO)
+    #include "i2s_32.h"
+    I2S_32         acq;
+  #endif
 
   #define mq (M_QUEU/NCH)
   #include "m_queue.h"
@@ -170,72 +121,54 @@ void  enviro_setup(void)
   #include "mProcess.h" 
   mProcess process1(&snipParameters); 
  
-  AudioConnection     patchCord2(acq, process1); 
+  AudioConnection     patchCord1(acq, process1); 
   #if MDEL <0 
-    AudioConnection     patchCord1(acq, queue[0]); 
+    AudioConnection     patchCord2(acq, queue[0]); 
   #else 
     AudioConnection     patchCord2(acq, delay1); 
     AudioConnection     patchCord3(delay1, queue[0]); 
   #endif 
 
-#elif ACQ == _ADC_S
+/*-------------------------- stereo (dual channel) -----------------------------*/
+#elif (ACQ == _ADC_S) || (ACQ == _I2S) || (ACQ == _I2S_32) || (ACQ == _I2S_TYMPAN)
   #define NCH 2
 
-  #include "input_adcs.h"
-  AudioInputAnalogStereo  acq(ADC_PIN1,ADC_PIN2);
+  #if (ACQ == _ADC_S)
+    #include "input_adcs.h"
+    AudioInputAnalogStereo  acq(ADC_PIN1,ADC_PIN2);
 
-  #define mq (M_QUEU/NCH)
-  #include "m_queue.h"
-  mRecordQueue<mq> queue[NCH];
+  #elif (ACQ == _I2S) || (ACQ == _I2S_TYMPAN)
+    #include "input_i2s.h"
+    AudioInputI2S         acq;
 
-  AudioConnection     patchCord1(acq,0, queue[0],0);
-  AudioConnection     patchCord2(acq,1, queue[1],0);
-
-#elif (ACQ == _I2S)
-  #define NCH 2
-  
-  #include "input_i2s.h"
-  AudioInputI2S         acq;
-
-  #define mq (M_QUEU/NCH)
-  #include "m_queue.h"
-  mRecordQueue<mq> queue[NCH];
-  
-  AudioConnection     patchCord1(acq,0, queue[0],0);
-  AudioConnection     patchCord2(acq,1, queue[1],0);
-
-#elif ACQ == _I2S_32  
-  #include "i2s_32.h"
-  I2S_32         acq;
-
-  #define NCH 2
-  #define mq (M_QUEU/NCH)
-  #include "m_queue.h"
-  mRecordQueue<mq> queue[NCH];
-
-  #if MDEL>=0
-    #include "m_delay.h"
-    mDelay<NCH,(MDEL+2)>  delay1(0); // have two buffers more in queue only to be safe
+  #elif (ACQ == _I2S_32)
+    #include "i2s_32.h"
+    I2S_32         acq;
   #endif
-  
+
+  #define mq (M_QUEU/NCH)
+  #include "m_queue.h"
+  mRecordQueue<mq> queue[NCH];
+
   #include "mProcess.h"
   mProcess process1(&snipParameters);
 
+  AudioConnection     patchCord1(acq,0, process1,0);
+  AudioConnection     patchCord2(acq,1, process1,1);
+    //
   #if MDEL <0
-    AudioConnection     patchCord1(acq,0, queue[0],0);
-    AudioConnection     patchCord2(acq,1, queue[1],0);
+    AudioConnection     patchCord3(acq,0, queue[0],0);
+    AudioConnection     patchCord4(acq,1, queue[1],0);
     
   #else
-    AudioConnection     patchCord1(acq,0, process1,0);
-    AudioConnection     patchCord2(acq,1, process1,1);
-    //
     AudioConnection     patchCord3(acq,0, delay1,0);
     AudioConnection     patchCord4(acq,1, delay1,1);
-    AudioConnection     patchCord1(delay1,0, queue[0],0);
-    AudioConnection     patchCord2(delay1,1, queue[1],0);
+    AudioConnection     patchCord5(delay1,0, queue[0],0);
+    AudioConnection     patchCord6(delay1,1, queue[1],0);
   #endif
-  
-#elif ACQ == _I2S_QUAD
+
+/*-------------------------- (quad channel) -----------------------------*/
+#elif ACQ == _I2S_QUAD      // not yet modified for event detections and delays
   #define NCH 4
   
   #include "input_i2s_quad.h"
@@ -250,63 +183,8 @@ void  enviro_setup(void)
   AudioConnection     patchCord3(acq,2, queue[2],0);
   AudioConnection     patchCord4(acq,3, queue[3],0);
 
-#elif ACQ == _I2S_32_MONO
-  #define NCH 1
   
-  #include "i2s_32.h"
-  I2S_32         acq;
-
-  #define mq (M_QUEU/NCH)
-  #include "m_queue.h"
-  mRecordQueue<mq> queue[NCH];
- 
-  #if MDEL>=0
-    #include "m_delay.h"
-    mDelay<NCH,(MDEL+2)>  delay1(0); // have two buffers more in queue only to be safe
-  #endif
-  
-  #include "mProcess.h"
-  mProcess process1(&snipParameters);
-
-  #if MDEL <0
-    AudioConnection     patchCord1(acq, queue[0]);
-  #else
-    AudioConnection     patchCord1(acq, process1);
-    AudioConnection     patchCord3(acq, delay1);
-    AudioConnection     patchCord5(delay1, queue[0]);
-  #endif
-
-#elif ACQ == _I2S_TYMPAN
-  #define NCH 2
-
-  #include "input_i2s.h"
-  AudioInputI2S         acq;
-
-  #define mq (M_QUEU/NCH)
-  #include "m_queue.h"
-  mRecordQueue<mq> queue[NCH];
-
-  #if MDEL>=0
-    #include "m_delay.h"
-    mDelay<NCH,(MDEL+2)>  delay1(0); // have two buffers more in queue only to be safe
-    #include "mProcess.h"
-    mProcess process1(&snipParameters);
-  #endif
-  
-  #if MDEL <0
-    AudioConnection     patchCord1(acq,0, delay1,0);
-    AudioConnection     patchCord2(acq,1, delay1,0);
-    
-  #else
-    AudioConnection     patchCord1(acq,0, process1,0);
-    AudioConnection     patchCord2(acq,1, process1,1);
-    //
-    AudioConnection     patchCord3(acq,0, delay1,0);
-    AudioConnection     patchCord4(acq,1, delay1,1);
-    AudioConnection     patchCord5(delay1,0, queue[0],0);
-    AudioConnection     patchCord6(delay1,1, queue[1],0);
-  #endif
-  
+/*-------------------------- (multi channel TDM) -----------------------------*/
 #elif ACQ == _I2S_TDM       // not yet modified for event detections and delays
 
   #define NCH 5 // if changing number of channels adapt Audio connections  // NCH must be less or equal than 8
@@ -329,7 +207,6 @@ void  enviro_setup(void)
   AudioConnection     patchCord3(acq,3,queue[3],0);
   AudioConnection     patchCord4(acq,4,queue[4],0);
   //
-  
 #else
   #error "invalid acquisition device"
 #endif
@@ -392,6 +269,7 @@ extern "C" void setup() {
   #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
     I2S_stop();
   #endif
+
 //  ledOn();
 //  while(!Serial);
 //  while(!Serial && (millis()<3000));
@@ -449,7 +327,7 @@ extern "C" void setup() {
     // shift I2S data right by 8 bits to move 24 bit ADC data to LSB 
     // the lower 16 bit are always maintained for further processing
     // typical shift value is between 8 and 12 as lower ADC bits are only noise
-    int16_t nbits=12; 
+    int16_t nbits=NSHIFT; 
     acq.digitalShift(nbits); 
 
   #elif(ACQ == _I2S_TYMPAN)
@@ -471,7 +349,7 @@ extern "C" void setup() {
 
   #elif(ACQ == _I2S_TDM)
     I2S_modification(F_SAMP,32,8);
-    int16_t nbits=12; 
+    int16_t nbits=NSHIFT; 
     acq.digitalShift(nbits); 
   #endif
 
@@ -492,8 +370,6 @@ extern "C" void setup() {
   //
   Serial.println("End of Setup");
 }
-
-#define mDebug(X) { static uint32_t t0; if(millis()>t0+1000) {Serial.println(X); t0=millis();}}
 
 volatile uint32_t maxValue=0, maxNoise=0; // possibly be updated outside
 
@@ -540,14 +416,14 @@ extern "C" void loop() {
     {
       for(int jj=0; jj<NCH; jj++)
       {  *ptr++ = *data[jj]++;
-         if(ptr == ((uint16_t*)(diskBuffer+BUFFERSIZE)))
+         if((uint16_t)ptr == ((uint16_t)(diskBuffer+BUFFERSIZE)))
          {
             // flush diskBuffer
             if((state>=0) 
                         && ((snipParameters.thresh<0) 
-                        #if MDEL >=0
-                          || (process1.getSigCount()>0)
-                        #endif
+                                                    #if MDEL >=0
+                                                      || (process1.getSigCount()>0)
+                                                    #endif
                            ))
             {
               to=micros();
@@ -561,41 +437,9 @@ extern "C" void loop() {
          }
       }
     } // copied now all data
-    outptr=(int16_t *)ptr; // save acual write position
+    outptr=(int16_t *)ptr; // save actual write position
     for(int ii=0; ii<NCH; ii++) queue[ii].freeBuffer();
-/*    
-    uint32_t *ptr=(uint32_t *) outptr;
-    for(int ii=0;ii<64;ii++) ptr[ii] = data[ii];
-    // release buffer an queue
-    queue1.freeBuffer(); 
-    //
-    // adjust buffer pointer
-    outptr+=128; // (128 shorts)
-    //
-    // if necessary reset buffer pointer and write to disk
-    // buffersize should be always a multiple of 512 bytes
-    if(outptr == (diskBuffer+BUFFERSIZE))
-    {
-      outptr = diskBuffer;
-  
-      // write to disk ( this handles also opening of files)
-      // but only if we have detection
-      if((state>=0) 
-          && ((snipParameters.thresh<0) 
-              #if MDEL >=0
-                || (process1.getSigCount()>0)
-              #endif
-      ))
-      {
-        to=micros();
-        state=uSD.write(diskBuffer,BUFFERSIZE); // this is blocking
-        t1=micros();
-        t2=t1-to;
-        if(t2<t3) t3=t2; // accumulate some time statistics
-        if(t2>t4) t4=t2;
-      }
-    }
- */
+
     if(!state)
     { 
 #if DO_DEBUG>0
@@ -613,12 +457,11 @@ extern "C" void loop() {
         #if MDEL >=0
           ((mustClose>0) && (process1.getSigCount()< -MDEL)) ||
         #endif
-       ((mustClose==0) && (checkDutyCycle(&acqParameters, state)<0)))
+          ((mustClose==0) && (checkDutyCycle(&acqParameters, state)<0)))
     { 
       // write remaining data to disk and close file
       if(state>=0)
       { uint32_t nbuf = (uint32_t)(outptr-diskBuffer);
-//        Serial.println(nbuf);
         state=uSD.write(diskBuffer,nbuf); // this is blocking
         state=uSD.close();
         uSD.storeConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);

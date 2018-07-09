@@ -26,7 +26,7 @@
 //----------------------------------------------------------------------------------------
 #define DO_DEBUG 1 // print debug info over usb-serial line  //<<<======>>>
 
-#define F_SAMP 250000 // desired sampling frequency  //<<<======>>>
+#define F_SAMP 48000 // desired sampling frequency  //<<<======>>>
 /*
  * NOTE: changing frequency impacts the macros 
  *      AudioProcessorUsage and AudioProcessorUsageMax
@@ -46,7 +46,7 @@
 #define _I2S_TYMPAN     7 // I2S (16 bit tympan stereo audio audio) for use the tympan board
 #define _I2S_TDM        8 // I2S (8 channel TDM) // only first 5 channels are used (modify myAcq.h if less or more channels)
 
-#define ACQ  _ADC_0   // selected acquisition interface  //<<<======>>>
+#define ACQ   _I2S_TDM  // selected acquisition interface  //<<<======>>>
 
 // For ADC SE pins can be changed
 #if ACQ == _ADC_0
@@ -59,23 +59,25 @@
   #define ADC_PIN1 A2 // can be changed //<<<======>>>
   #define ADC_PIN2 A3 // can be changed //<<<======>>>
   #define DIFF 0
+#elif (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) || (ACQ == _I2S_TDM) 
+  #define NSHIFT 12 // number of bits to shift data to the right before extracting 16 bits //<<<======>>>
 #endif
 
 #define MDEL -1     // maximal delay in buffer counts (128/fs each; for fs= 48 kHz: 128/48 = 2.5 ms each) //<<<======>>>
-                    // MDEL == -1 conects ACQ interface directly to mux and queue
+                    // MDEL == -1 connects ACQ interface directly to mux and queue
 
 #define GEN_WAV_FILE  // generate wave files, if undefined generate raw data (with 512 byte header) //<<<======>>>
 
 /****************************************************************************************/
-// some structures to be used for controllong acquisition
+// some structures to be used for controlling acquisition
 // -----------------------scheduled acquisition------------------------------------------
 typedef struct
 { uint32_t on;  // acquisition on time in seconds
   uint32_t ad;  // acquisition file size in seconds
-  uint32_t ar;  // acquisition rate, i.e. every ar seconds (if < on then continuous acqisition)
-  uint32_t T1,T2; // first aquisition window (from T1 to T2) in Hours of day
-  uint32_t T3,T4; // second aquisition window (from T1 to T2) in Hours of day
-  uint32_t rec;  // time when secording started
+  uint32_t ar;  // acquisition rate, i.e. every ar seconds (if < on then continuous acquisition)
+  uint32_t T1,T2; // first acquisition window (from T1 to T2) in Hours of day
+  uint32_t T3,T4; // second acquisition window (from T1 to T2) in Hours of day
+  uint32_t rec;  // time when recording started
   char name[8];   // prefix for recorder file names
 } ACQ_Parameters_s;
 
@@ -85,27 +87,27 @@ typedef struct
 //
 // Example
 // ACQ_Parameters_s acqParameters = {120, 60, 180, 0, 12, 12, 24, 0, "WMXZ"};
-//  acquire 2 files each 60 s long (totalling 120 s)
+//  acquire 2 files each 60 s long (totaling 120 s)
 //  sleep for 60 s (to reach 180 s acquisition interval)
 //  acquire whole day (from midnight to noon and noot to midnight)
 //
 
-ACQ_Parameters_s acqParameters = { 30, 10, 60, 0, 12, 12, 24, 0, "NEW1"}; //<<<======>>>
+ACQ_Parameters_s acqParameters = { 30, 10, 60, 0, 12, 12, 24, 0, "TDM"}; //<<<======>>>
 
 // the following global variable may be set from anywhere
-// if one wanted to close file immedately
+// if one wanted to close file immediately
 // mustClose = -1: disable this feature, close on time limit but finish to fill diskBuffer
 // mustcClose = 0: flush data and close exactly on time limit
 // mustClose = 1: flush data and close immediately (not for user, this will be done by program)
 
 int16_t mustClose = -1;// initial value (can be -1: ignore event trigger or 0: implement event trigger) //<<<======>>>
 
-//---------------------------------- snippet extraction modul ---------------------------------------------
+//---------------------------------- snippet extraction module ---------------------------------------------
 typedef struct
-{  int32_t iproc;      // type of detection rocessor (0: high-pass-threshold; 1: Taeger-Kaiser-Operator)
+{  int32_t iproc;      // type of detection processor (0: high-pass-threshold; 1: Taeger-Kaiser-Operator)
    int32_t thresh;     // power SNR for snippet detection (-1: disable snippet extraction)
    int32_t win0;       // noise estimation window (in units of audio blocks)
-   int32_t win1;       // detection watchdog window (in units of audio blocks typicaly 10x win0)
+   int32_t win1;       // detection watchdog window (in units of audio blocks typically 10x win0)
    int32_t extr;       // min extraction window
    int32_t inhib;      // guard window (inhibit follow-on secondary detections)
    int32_t nrep;       // noise only interval (nrep =0  indicates no noise archiving)
@@ -134,6 +136,7 @@ SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL}; //
                                   //TYMPAN_INPUT_JACK_AS_LINEIN // use the microphone jack - defaults to mic bias OFF
   #define input_gain_dB   10.5f   //<<<======>>>
 #endif
+
 //
 /*********************** End possible User Modifications ********************************/
 

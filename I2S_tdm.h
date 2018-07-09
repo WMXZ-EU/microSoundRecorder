@@ -92,25 +92,27 @@ void I2S_TDM::begin(void)
 void I2S_TDM::isr(void)
 {
 	uint32_t daddr;
-	const uint32_t *src;
+	uint32_t *src;
 	unsigned int ii;
 
 	daddr = (uint32_t)(dma.TCD->DADDR);
 	dma.clearInterrupt();
 
-	if (daddr < (uint32_t)tdm_rx_buffer + sizeof(tdm_rx_buffer) / 2) {
-		// DMA is receiving to the first half of the buffer
+	if (daddr < &tdm_rx_buffer[AUDIO_BLOCK_SAMPLES*MBL] 
+	{	// DMA is receiving to the first half of the buffer
 		// need to remove data from the second half
 		src = &tdm_rx_buffer[AUDIO_BLOCK_SAMPLES*MBL];
-	} else {
-		// DMA is receiving to the second half of the buffer
+	}
+	else 
+	{	// DMA is receiving to the second half of the buffer
 		// need to remove data from the first half
 		src = &tdm_rx_buffer[0];
 	}
-	if (block_incoming[0] != NULL) {
+	if (block_incoming[0] != NULL) 
+	{
 		for(ii=0;ii<AUDIO_BLOCK_SAMPLES;ii++)
 		{
-			for(int jj=0; jj<NBL; jj++) { block_incoming[jj]->data[ii] = (int16_t) ((*src)>>I2S_TDM::shift); src++;}
+			for(int jj=0; jj<NBL; jj++) { block_incoming[jj]->data[ii] = (int16_t) (*(src)>>I2S_TDM::shift); src++;}
 			src +=(MBL-NBL); // skip the empty data fields
 		}
 	}
