@@ -413,28 +413,33 @@ extern "C" void loop() {
     // copy to disk buffer
     int16_t *ptr=(int16_t *) outptr;
     for(int ii=0;ii<AUDIO_BLOCK_SAMPLES;ii++) 
-    {
-      for(int jj=0; jj<NCH; jj++)
-      {  *ptr++ = *data[jj]++;
-         if(ptr == (int16_t *)((diskBuffer+BUFFERSIZE)))
-         {
-            // flush diskBuffer
-            if((state>=0) 
-                        && ((snipParameters.thresh<0) 
-                                                    #if MDEL >=0
-                                                      || (process1.getSigCount()>0)
-                                                    #endif
-                           ))
-            {
-              to=micros();
-              state=uSD.write(diskBuffer,BUFFERSIZE); // this is blocking
-              t1=micros();
-              t2=t1-to;
-              if(t2<t3) t3=t2; // accumulate some time statistics
-              if(t2>t4) t4=t2;
-              ptr=(int16_t *)diskBuffer;
-            }
-         }
+    { // the following is inefficient but needed for arbitrary NCH (to be improved)
+      {
+        for(int jj=0; jj<NCH; jj++)
+        {  *ptr++ = *data[jj]++;
+           uint32_t nbuf=0;
+           if((jj==0) && (state==0) && (ptr+NCH > (int16_t *)(diskBuffer+BUFFERSIZE))) nbuf = (uint32_t)(ptr-diskBuffer);
+           if(ptr == (int16_t *)(diskBuffer+BUFFERSIZE)) nbuf = BUFFERSIZE;
+           if(nbuf>0)
+           {
+              // flush diskBuffer
+              if((state>=0) 
+                           && ((snipParameters.thresh<0) 
+                                                       #if MDEL >=0
+                                                         || (process1.getSigCount()>0)
+                                                       #endif
+                             ))
+              {
+                to=micros();
+                state=uSD.write(diskBuffer,nbuf); // this is blocking
+                t1=micros();
+                t2=t1-to;
+                if(t2<t3) t3=t2; // accumulate some time statistics
+                if(t2>t4) t4=t2;
+                ptr=(int16_t *)diskBuffer;
+              }
+           }
+        }
       }
     } // copied now all data
     outptr=(int16_t *)ptr; // save actual write position
