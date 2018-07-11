@@ -372,6 +372,7 @@ extern "C" void setup() {
 }
 
 volatile uint32_t maxValue=0, maxNoise=0; // possibly be updated outside
+int16_t tempBuffer[AUDIO_BLOCK_SAMPLES*NCH];
 
 extern "C" void loop() {
   // put your main code here, to run repeatedly:
@@ -397,7 +398,13 @@ extern "C" void loop() {
     //
     if(state==0)
     { // generate header before file is opened
-      #ifndef GEN_WAV_FILE // is declared in audio_logger_if.h
+      #ifdef GEN_WAV_FILE // is declared in audio_logger_if.h
+         uint32_t *ptr=(uint32_t *) outptr;
+         uint32_t *header=(uint32_t *) wavHeader(0); // call initially with zero filesize
+         // copy to disk buffer
+         for(int ii=0;ii<11;ii++) ptr[ii] = header[ii];
+         outptr+=22; //(44 bytes)
+      #else
          uint32_t *header=(uint32_t *) headerUpdate();
          uint32_t *ptr=(uint32_t *) outptr;
          // copy to disk buffer
@@ -406,12 +413,63 @@ extern "C" void loop() {
       #endif
       state=1;
     }
+    
     // fetch data from queues
     int16_t * data[NCH];
     for(int ii=0; ii<NCH; ii++) data[ii] = (int16_t *)queue[ii].readBuffer();
-    //
-    // copy to disk buffer
+    // multiplex data
+    int16_t *tmp = tempBuffer;
+    for(int ii=0;ii<AUDIO_BLOCK_SAMPLES;ii++) for(int jj=0; jj<NCH; jj++) *tmp++ = *data[jj]++;
+    // release queues
+    for(int ii=0; ii<NCH; ii++) queue[ii].freeBuffer();
+
+    // copy data to disk buffer
     int16_t *ptr=(int16_t *) outptr;
+    
+    // number of data in tempBuffer
+    int32_t ndat = AUDIO_BLOCK_SAMPLES*NCH;
+    
+    // number of free samples on diskbuffer
+    int32_t nout = diskBuffer+BUFFERSIZE - outptr;
+
+    tmp = tempBuffer;
+    if (nout>ndat)
+    { // sufficient space for all data
+      for(int ii=0;ii<ndat;ii++) *ptr++ = *tmp++;
+      nout-=ndat;
+      ndat=0;
+    }
+    else
+    { // fill up disk buffer
+      int nbuf=nout;
+      if(uSD.isClosing()) nbuf=(nbuf/NCH)*NCH;
+      for(int ii=0;ii<nbuf;ii++) *ptr++ = *tmp++;
+      ndat-=nbuf;
+      nout=0;
+    }
+    
+    if(nout==0) //buffer is filled, so write to disk
+    { int32_t nbuf=ptr-diskBuffer;
+    
+      to=micros();
+      state=uSD.write(diskBuffer,nbuf); // this is blocking
+      t1=micros();
+      t2=t1-to;
+      if(t2<t3) t3=t2; // accumulate some time statistics
+      if(t2>t4) t4=t2;
+
+      ptr=(int16_t *)diskBuffer;
+    }
+
+    if(ndat>0) // save residual data
+    {
+      for(int ii=0;ii<ndat;ii++) *ptr++ = *tmp++;
+    }
+    
+    // all data are copied
+    outptr=(int16_t *)ptr; // save actual write position
+/*
+    //
     for(int ii=0;ii<AUDIO_BLOCK_SAMPLES;ii++) 
     { // the following is inefficient but needed for arbitrary NCH (to be improved)
       {
@@ -443,8 +501,7 @@ extern "C" void loop() {
       }
     } // copied now all data
     outptr=(int16_t *)ptr; // save actual write position
-    for(int ii=0; ii<NCH; ii++) queue[ii].freeBuffer();
-
+*/
     if(!state)
     { 
 #if DO_DEBUG>0
@@ -457,7 +514,7 @@ extern "C" void loop() {
   else
   {  // queue is empty
   // are we told to close or running out of time?
-    // if delay is eneabled must wait for delay to pass by
+    // if delay is enabled must wait for delay to pass by
     if(
         #if MDEL >=0
           ((mustClose>0) && (process1.getSigCount()< -MDEL)) ||

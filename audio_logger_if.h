@@ -63,6 +63,7 @@ class c_uSD
     int16_t write(int16_t * data, int32_t ndat);
     uint16_t getNbuf(void) {return nbuf;}
     void setClosing(void) {closing=1;}
+    int16_t isClosing(void) {return closing;}
 
     int16_t close(void);
     void setPrefix(char *prefix);
