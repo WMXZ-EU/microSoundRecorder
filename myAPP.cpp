@@ -399,14 +399,27 @@ extern "C" void loop() {
     if(state==0)
     { // generate header before file is opened
       #ifdef GEN_WAV_FILE // is declared in audio_logger_if.h
-         uint32_t *ptr=(uint32_t *) outptr;
          uint32_t *header=(uint32_t *) wavHeader(0); // call initially with zero filesize
-         // copy to disk buffer
+         //
+         int ndat=outptr-diskBuffer;
+         if(ndat>0)
+         { // shift exisiting data after header, which is always at beginnig of file
+          for(int ii=0; ii<ndat; ii++) diskBuffer[22+ii]=diskBuffer[ii]; 
+         }
+         // copy header to disk buffer
+         uint32_t *ptr=(uint32_t *) diskBuffer;
          for(int ii=0;ii<11;ii++) ptr[ii] = header[ii];
          outptr+=22; //(44 bytes)
       #else
-         uint32_t *header=(uint32_t *) headerUpdate();
-         uint32_t *ptr=(uint32_t *) outptr;
+         uint32_t *header=(uint32_t *) headerUpdate(); 
+         //
+         int ndat=outptr-diskBuffer;
+         if(ndat>0)
+         { // shift exisiting data after header, which is always at beginnig of file
+          for(int ii=0; ii<ndat; ii++) diskBuffer[256+ii]=diskBuffer[ii]; 
+         }
+         // copy header to disk buffer
+         uint32_t *ptr=(uint32_t *) diskBuffer;
          // copy to disk buffer
          for(int ii=0;ii<128;ii++) ptr[ii] = header[ii];
          outptr+=256; //(512 bytes)
@@ -442,7 +455,7 @@ extern "C" void loop() {
     else
     { // fill up disk buffer
       int nbuf=nout;
-      if(uSD.isClosing()) nbuf=(nbuf/NCH)*NCH;
+      if(uSD.isClosing()) nbuf=(nbuf/NCH)*NCH; // is last record of file 
       for(int ii=0;ii<nbuf;ii++) *ptr++ = *tmp++;
       ndat-=nbuf;
       nout=0;
