@@ -244,9 +244,11 @@ extern void rtc_set(unsigned long t);
 extern "C" void setup() {
   // put your setup code here, to run once:
   int16_t nsec;
+  pinMode(3,INPUT_PULLUP); // needed to enter menu if grounded
 
 #if DO_DEBUG>0
-   while(!Serial);
+   while(!Serial && !digitalRead(3));
+//  while(!Serial && (millis()<3000)); // use this for testing without menu
    Serial.println("microSoundRecorder");
 #endif
 /*
@@ -259,8 +261,6 @@ extern "C" void setup() {
   // for 16bit resolution
   temperature = -0.0293 * analogRead(70) + 440.5;
 */
-
-  pinMode(3,INPUT_PULLUP); // needed to enter menu if grounded
 
 #define MAUDIO (M_QUEU+MDEL+50)
 	AudioMemory (MAUDIO); // 600 blocks use about 200 kB (requires Teensy 3.6)
