@@ -133,11 +133,11 @@ static void gotoSleep(void)
    SCB_SCR |= SCB_SCR_SLEEPDEEP_MASK;  // Set the SLEEPDEEP bit to enable deep sleep mode (STOP)
    
    asm volatile( "wfi" );  // WFI instruction will start entry into STOP mode
-   // will never return, but wake-up results in call to ResetHandler() in mk20dx128.c
+   // will never return with "VLLS_MODE==VLLS0", but wake-up results in call to ResetHandler() in mk20dx128.c
 }
 
 void setWakeupCallandSleep(uint32_t nsec)
-{  // set alarm to nsec secods in future and go to hibernate
+{  // set alarm to nsec seconds in the future and go to hibernate
    rtcSetup();
    llwuSetup();  
    rtcSetAlarm(nsec);
@@ -200,7 +200,7 @@ int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
         return -1; // flag to close acquisition
       }
       
-      if( flag==0 )  // file is closed new file
+      if( flag==0 )  // file is closed: new file
       { 
         if(!recording) // we are at the beginning of an acquisition cycle
         {

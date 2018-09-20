@@ -148,6 +148,11 @@ void I2S_stopClock(void)
       SIM_SCGC6 &= ~SIM_SCGC6_I2S;
 }
 
+void I2S_startClock(void)
+{
+      SIM_SCGC6 |= SIM_SCGC6_I2S;
+}
+
 void I2S_stop(void)
 {
     I2S0_RCSR &= ~(I2S_RCSR_RE | I2S_RCSR_BCE);

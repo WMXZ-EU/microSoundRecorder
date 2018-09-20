@@ -46,7 +46,7 @@
 #define _I2S_TYMPAN     7 // I2S (16 bit tympan stereo audio audio) for use the tympan board
 #define _I2S_TDM        8 // I2S (8 channel TDM) // only first 5 channels are used (modify myAcq.h if less or more channels)
 
-#define ACQ   _I2S_TDM  // selected acquisition interface  //<<<======>>>
+#define ACQ   _I2S_TYMPAN  // selected acquisition interface  //<<<======>>>
 
 // For ADC SE pins can be changed
 #if ACQ == _ADC_0
@@ -59,7 +59,7 @@
   #define ADC_PIN1 A2 // can be changed //<<<======>>>
   #define ADC_PIN2 A3 // can be changed //<<<======>>>
   #define DIFF 0
-#elif (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) || (ACQ == _I2S_TDM) 
+#elif (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) || (ACQ == _I2S_TDM)
   #define NSHIFT 12 // number of bits to shift data to the right before extracting 16 bits //<<<======>>>
 #endif
 
@@ -89,10 +89,10 @@ typedef struct
 // ACQ_Parameters_s acqParameters = {120, 60, 180, 0, 12, 12, 24, 0, "WMXZ"};
 //  acquire 2 files each 60 s long (totaling 120 s)
 //  sleep for 60 s (to reach 180 s acquisition interval)
-//  acquire whole day (from midnight to noon and noot to midnight)
+//  acquire whole day (from midnight to noon and noon to midnight)
 //
 
-ACQ_Parameters_s acqParameters = { 30, 10, 60, 0, 12, 12, 24, 0, "TDM"}; //<<<======>>>
+ACQ_Parameters_s acqParameters = { 30, 10, 60, 0, 12, 12, 24, 0, "WMXZ"}; //<<<======>>>
 
 // the following global variable may be set from anywhere
 // if one wanted to close file immediately
@@ -121,7 +121,7 @@ SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL}; //
 // this may be useful when using a powerbank, or other cases where frequent booting is desired
 // is used in audio_hibernate.h
 //#define SLEEP_SHORT             // comment when sleep duration is not limited   //<<<======>>>
-#define ShortSleepDuration 60   // value in seconds     //<<<======>>>
+#define ShortSleepDuration 60     // value in seconds     //<<<======>>>
 
 //------------------------- Additional sensors ---------------------------------------------------------------
 #define USE_ENVIRONMENTAL_SENSORS 0 // to use environmental sensors set to 1 otherwise set to 0  //<<<======>>>
@@ -137,6 +137,15 @@ SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL}; //
   #define input_gain_dB   10.5f   //<<<======>>>
 #endif
 
+//------------------------- configuration of trigger module ----------------------------------------------------
+#define AUDIO_TRIGGER 0
+#define LEFT_TRIGGER 1
+#define RIGHT_TRIGGER 2
+#define ADC_TRIGGER 3
+
+#define PROCESS_TRIGGER AUDIO_TRIGGER
+#if PROCESS_TRIGGER == ADC_TRIGGER
+  #define extAnalogPin 1
+#endif
 //
 /*********************** End possible User Modifications ********************************/
-

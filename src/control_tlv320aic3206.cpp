@@ -141,8 +141,7 @@ bool AudioControlTLV320AIC3206::enable(void)
 
   // Setup for Master mode, pins 18/19, external pullups, 400kHz, 200ms default timeout
 	Wire.begin();
-	delay(5);
-
+	delay(305);
   //hard reset the AIC
   //Serial.println("Hardware reset of AIC...");
   //define RESET_PIN  21

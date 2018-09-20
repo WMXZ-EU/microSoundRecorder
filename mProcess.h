@@ -79,7 +79,7 @@ private:
   //
   int32_t nest1, nest2;// background noise estimate
      
-  audio_block_t *out1, *out2;
+  audio_block_t *out1, *out2; // not used yet
 };
  
 void mProcess::begin(SNIP_Parameters_s *param)
@@ -156,11 +156,13 @@ void mProcess::update(void)
   if(inp2) release(inp2);
 
   // do here something useful with data 
-  // example is a simple thresold detector on both channels
-  // simple high-pass filter (6 db/octave)
-  // followed by threshold detector
 
   int16_t ndat = AUDIO_BLOCK_SAMPLES;
+  
+#if PROCESS_TRIGGER == AUDIO_TRIGGER || PROCESS_TRIGGER == LEFT_TRIGGER
+  // example is a simple threshold detector on both channels
+  // simple high-pass filter (6 db/octave)
+  // followed by threshold detector
   //
   // first channel
   if(tmp1)
@@ -175,6 +177,7 @@ void mProcess::update(void)
     avg1Val = 0;
   }
   
+#elif PROCESS_TRIGGER == AUDIO_TRIGGER || PROCESS_TRIGGER == RIGHT_TRIGGER
   // second channel
   if(tmp2)
   {
@@ -187,13 +190,20 @@ void mProcess::update(void)
     max2Val = 0;
     avg2Val = 0;
   }
+
+#elif PROCESS_TRIGGER == ADC_TRIGGER
+  // second example is a simple threshold detector on external ADC
+  // followed by threshold detector
+  avg1Val=max1Val=analogRead(expAnalogPin);
+  avg2Val=max2Val=0;
+#endif
   
   //
   // if threshold detector fires, the open transmisssion of input data for "extr"
   // due to use of temprary storage, the block before detection will be transmitted first
   // that means 
   // "extr" ==2 means both, pre-trigger and trigger blocks are transmitted
-  // "extr" ==3 means pre-trigger, trigger and a post-trigger blocks are transmitted
+  // "extr" ==3 means pre-trigger, trigger and 1 post-trigger block are transmitted
   // "extr" ==4 means pre-trigger, trigger and 2 post-trigger blocks are transmitted
   //
   // Re-triggering is possible
@@ -222,7 +232,13 @@ void mProcess::update(void)
   }
   //
   // is we wanted single event file signal main program to close immediately if queue is empty
-  if((sigCount==0) && (mustClose==0)) { Serial.println("mustClose"); mustClose=1;}
+  if((sigCount==0) && (mustClose==0)) 
+  { 
+    #if DO_DEBUG>0
+      Serial.println("mustClose"); 
+    #endif
+    mustClose=1;
+  }
 
   if(mustClose<=0)
   { // transmit anyway a single buffer every now and then 

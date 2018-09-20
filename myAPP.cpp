@@ -76,9 +76,7 @@
 //==================== Tympan audio board interface ========================================
 #if ACQ == _I2S_TYMPAN
   #include "src/Tympan.h"
-  #include "src/control_tlv320aic3206.h"
-  TympanPins    tympPins(TYMPAN_REVISION);        //TYMPAN_REV_C or TYMPAN_REV_D
-  TympanBase    audioHardware(tympPins);
+  AudioControlTLV320AIC3206 audioHardware(false);
 #endif
 
 //==================== Environmental sensors ========================================
@@ -174,9 +172,9 @@
   #include "input_i2s_quad.h"
   AudioInputI2SQuad     acq;
   
-  #define MQ (M_QUEU/NCH)
+  #define mq (M_QUEU/NCH)
   #include "m_queue.h"
-  mRecordQueue<MQ> *queue = new mRecordQueue<MQ> [NCH];
+  mRecordQueue<mq> *queue = new mRecordQueue<mq> [NCH];
 
   AudioConnection     patchCord1(acq,0, queue[0],0);
   AudioConnection     patchCord2(acq,1, queue[1],0);
@@ -244,11 +242,14 @@ extern void rtc_set(unsigned long t);
 extern "C" void setup() {
   // put your setup code here, to run once:
   int16_t nsec;
-  pinMode(3,INPUT_PULLUP); // needed to enter menu if grounded
+   pinMode(3,INPUT_PULLUP); // needed to enter menu if grounded
 
 #if DO_DEBUG>0
-   while(!Serial && !digitalRead(3));
-//  while(!Serial && (millis()<3000)); // use this for testing without menu
+  #if ACQ == _I2S_TYMPAN
+    while(!Serial && (millis()<3000)); // use this for testing without menu
+  #else
+     while(!Serial && !digitalRead(3)); 
+  #endif
    Serial.println("microSoundRecorder");
 #endif
 /*
@@ -310,6 +311,10 @@ extern "C" void setup() {
       I2S_stopClock();
     #endif
     setWakeupCallandSleep(nsec); // will not return if we should not continue with acquisition 
+    
+    #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
+      I2S_startClock();
+    #endif
   }
   
   // Now modify objects from audio library
@@ -331,6 +336,8 @@ extern "C" void setup() {
     acq.digitalShift(nbits); 
 
   #elif(ACQ == _I2S_TYMPAN)
+    I2S_modification(F_SAMP,32,2);
+
     // initalize tympan's tlv320aic3206
     //Enable the Tympan to start the audio flowing!
     audioHardware.enable(); // activate AIC
@@ -344,8 +351,8 @@ extern "C" void setup() {
     audioHardware.setInputGain_dB(input_gain_dB); // set input volume, 0-47.5dB in 0.5dB setps
     
     //Set the state of the LEDs
-    audioHardware.setRedLED(HIGH);
-    audioHardware.setAmberLED(LOW);
+//    audioHardware.setRedLED(HIGH);
+//    audioHardware.setAmberLED(LOW);
 
   #elif(ACQ == _I2S_TDM)
     I2S_modification(F_SAMP,32,8);
@@ -356,7 +363,13 @@ extern "C" void setup() {
   //are we using the eventTrigger?
   if(snipParameters.thresh>=0) mustClose=0; else mustClose=-1;
   #if MDEL>=0
-    if(mustClose<0) delay1.setDelay(0); else delay1.setDelay(MDEL);
+    if(mustClose<0) delay1.setDelay(0); else delay1.setDelay(snipParameters.ndel);
+  #endif
+
+  #if PROCESS_TRIGGER == ADC_TRIGGER
+    analogReference(INTERNAL);
+    analogReadRes(14);
+    analogReadAveraging(32);
   #endif
   
   // set filename prefix
@@ -381,22 +394,54 @@ extern "C" void loop() {
   static uint32_t t3,t4;
   static int16_t state=0; // 0: open new file, -1: last file
 
+  // check if there are data on queues
   int have_data=1;
   for(int ii=0;ii<NCH;ii++) if(queue[ii].available()==0) have_data=0;
 
+  // check if we should stop aquiisition and/or hibernate
+  nsec=checkDutyCycle(&acqParameters, state);
+  if(nsec<0) 
+  { // we should close
+    #if MDEL >=0
+      if(process1.getSigCount() < -snipParameters.ndel))    // we have delayed recording
+    #endif
+    uSD.setClosing(); // next record will be last record in file
+  }
+  
+  if(nsec>0) // should sleep for nsec seconds
+  { 
+    #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
+      I2S_stopClock();
+    #endif
+    setWakeupCallandSleep(nsec); // file closed sleep now
+    
+    #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
+      I2S_startClock();
+    #endif
+  }
+
+  #if PROCESS_PRIGGER == ADC_TRIGGER
+  // check if we trigger special file
+    if(must_close>0)
+    { // close immediately
+      state=uSD.close();
+      uSD.storeConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
+      uSD.setPrefix("Event");
+
+      // reset mustClose flag
+      if(snipParameters.thresh>=0) mustClose=0; else mustClose=-1;
+    }
+    
+    if(state > 0)
+    { // file is open, can reset filename prefix
+      uSD.setPrefix(acqParameters.name);
+    }
+  #endif
+  
   if(have_data)
   { // have data on queue
-    nsec=checkDutyCycle(&acqParameters, state);
-    if(nsec<0) { uSD.setClosing();} // this will be last record in file
-    if(nsec>0) 
-    { 
-      #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
-        I2S_stopClock();
-      #endif
-      setWakeupCallandSleep(nsec); // file closed sleep now
-    }
     //
-    if(state==0)
+    if(state==0) // file is closed 
     { // generate header before file is opened
       #ifdef GEN_WAV_FILE // is declared in audio_logger_if.h
          uint32_t *header=(uint32_t *) wavHeader(0); // call initially with zero filesize
@@ -474,7 +519,7 @@ extern "C" void loop() {
       ptr=(int16_t *)diskBuffer;
     }
 
-    if(ndat>0) // save residual data
+    if(ndat>0) // save residual data in temp buffer
     {
       for(int ii=0;ii<ndat;ii++) *ptr++ = *tmp++;
     }
@@ -515,7 +560,7 @@ extern "C" void loop() {
     } // copied now all data
     outptr=(int16_t *)ptr; // save actual write position
 */
-    if(!state)
+    if(state==0) // file has been closed
     { 
 #if DO_DEBUG>0
       Serial.println("closed");
@@ -526,22 +571,22 @@ extern "C" void loop() {
   }
   else
   {  // queue is empty
-  // are we told to close or running out of time?
+    // are we told to close or running out of time?
     // if delay is enabled must wait for delay to pass by
-    if(
+    if(((mustClose==0) && uSD.isClosing())
         #if MDEL >=0
-          ((mustClose>0) && (process1.getSigCount()< -MDEL)) ||
+          || ((mustClose>0) && (process1.getSigCount()< -snipParameters.ndel))
         #endif
-          ((mustClose==0) && (checkDutyCycle(&acqParameters, state)<0)))
+      )
     { 
       // write remaining data to disk and close file
-      if(state>=0)
+      if(state>0)
       { uint32_t nbuf = (uint32_t)(outptr-diskBuffer);
         state=uSD.write(diskBuffer,nbuf); // this is blocking
         state=uSD.close();
         uSD.storeConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
+        outptr = diskBuffer;
       }
-      outptr = diskBuffer;
 
       // reset mustClose flag
       if(snipParameters.thresh>=0) mustClose=0; else mustClose=-1;
@@ -589,4 +634,3 @@ extern "C" void loop() {
 
   asm("wfi"); // to save some power switch off idle cpu
 }
-
