@@ -43,7 +43,7 @@
 #define _I2S_32         4 // I2S (32 bit stereo audio), eg. two ICS43434 mics
 #define _I2S_QUAD       5 // I2S (16 bit quad audio)
 #define _I2S_32_MONO    6 // I2S (32 bit mono audio), eg. one ICS43434 mic
-#define _I2S_TYMPAN     7 // I2S (16 bit tympan stereo audio audio) for use the tympan board
+#define _I2S_TYMPAN     7 // I2S (16/32 bit tympan stereo audio audio) for use the tympan board
 #define _I2S_TDM        8 // I2S (8 channel TDM) // only first 5 channels are used (modify myAcq.h if less or more channels)
 
 #define ACQ   _I2S_TYMPAN  // selected acquisition interface  //<<<======>>>
@@ -139,7 +139,10 @@ SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL}; //
   #undef F_SAMP
   #define F_SAMP          44100L // desired sampling frequency  //<<<======>>>
   #define AIC_FS F_SAMP
-  #define AIC_BITS        32
+  #define AIC_BITS        32  // could also be 16
+  #if AIC_BITS==32
+    #define NSHIFT 12 // number of bits to shift data to the right before extracting 16 bits //<<<======>>>
+  #endif
 #endif
 
 //------------------------- configuration of trigger module ----------------------------------------------------

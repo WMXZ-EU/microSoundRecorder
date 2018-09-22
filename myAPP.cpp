@@ -348,6 +348,10 @@ extern "C" void setup() {
 
   #elif(ACQ == _I2S_TYMPAN)
     I2S_modification(F_SAMP,32,2);
+    #if AIC_BITS == 32
+      int16_t nbits=NSHIFT; 
+      acq.digitalShift(nbits); 
+    #endif
 
     // initalize tympan's tlv320aic3206
     //Enable the Tympan to start the audio flowing!
