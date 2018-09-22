@@ -135,6 +135,11 @@ SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL}; //
                                   //TYMPAN_INPUT_JACK_AS_MIC // use the microphone jack - defaults to mic bias 2.5V
                                   //TYMPAN_INPUT_JACK_AS_LINEIN // use the microphone jack - defaults to mic bias OFF
   #define input_gain_dB   10.5f   //<<<======>>>
+  
+  #undef F_SAMP
+  #define F_SAMP 44100L // desired sampling frequency  //<<<======>>>
+  #define AIC_FS F_SAMP
+
 #endif
 
 //------------------------- configuration of trigger module ----------------------------------------------------

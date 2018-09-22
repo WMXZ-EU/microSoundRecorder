@@ -76,7 +76,7 @@
 //==================== Tympan audio board interface ========================================
 #if ACQ == _I2S_TYMPAN
   #include "src/Tympan.h"
-  AudioControlTLV320AIC3206 audioHardware(false);
+  AudioControlTLV320AIC3206 audioHardware(true);
 #endif
 
 //==================== Environmental sensors ========================================

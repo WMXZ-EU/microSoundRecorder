@@ -38,56 +38,69 @@
 //**************************** Clock Setup **********************************//
 
 //**********************************  44100  *********************************//
-#if AIC_FS == 44100
+#if AIC_FS == 8000
+	#error "FS 8000 not implemented yet"
+#elif AIC_FS == 18000
+	#error "FS 16000 not implemented yet"
+#elif AIC_FS == 32000
+	#error "FS 32000 not implemented yet"
+#elif AIC_FS == 44100
 
-// MCLK = 180000000 * 16 / 255 = 11.294117 MHz // FROM TEENSY, FIXED
+	// MCLK = 180000000 * 16 / 255 = 11.294117 MHz // FROM TEENSY, FIXED
 
-// PLL setup.  PLL_OUT = MCLK * R * J.D / P
-//// J.D = 7.5264, P = 1, R = 1 => 90.32 MHz // FROM 12MHz CHA AND WHF //
-// J.D = 7.9968, P = 1, R = 1 => 90.3168 MHz // For 44.1kHz exact
-// J.D = 8.0000000002, P = 1, R = 1 => 9.35294117888MHz // for TEENSY 44.11764706kHz
-#define PLL_J                                                             8
-#define PLL_D                                                             0
+	// PLL setup.  PLL_OUT = MCLK * R * J.D / P
+	//// J.D = 7.5264, P = 1, R = 1 => 90.32 MHz // FROM 12MHz CHA AND WHF //
+	// J.D = 7.9968, P = 1, R = 1 => 90.3168 MHz // For 44.1kHz exact
+	// J.D = 8.0000000002, P = 1, R = 1 => 9.35294117888MHz // for TEENSY 44.11764706kHz
+	#define PLL_J      8
+	#define PLL_D      0
 
-// Bitclock divisor.
-// BCLK = DAC_CLK/N = PLL_OUT/NDAC/N = 32*fs or 16*fs
-// PLL_OUT = fs*NDAC*MDAC*DOSR
-// BLCK = 32*fs = 1411200 = PLL
-#if AIC_BITS == 16
-#define BCLK_N                                                            8
-#elif AIC_BITS == 32
-#define BCLK_N                                                            4
-#endif
+	// Bitclock divisor.
+	// BCLK = DAC_CLK/N = PLL_OUT/NDAC/N = 32*fs or 16*fs
+	// PLL_OUT = fs*NDAC*MDAC*DOSR
+	// BLCK = 32*fs = 1411200 = PLL
+	#if AIC_BITS == 16
+		#define BCLK_N      8
+	#elif AIC_BITS == 32
+		#define BCLK_N      4
+	#endif
 
-// ADC/DAC FS setup.
-// ADC_MOD_CLK = CODEC_CLKIN / (NADC * MADC)
-// DAC_MOD_CLK = CODEC_CLKIN / (NDAC * MDAC)
-// ADC_FS = PLL_OUT / (NADC*MADC*AOSR)
-// DAC_FS = PLL_OUT / (NDAC*MDAC*DOSR)
-// FS = 90.3168MHz / (8*2*128) = 44100 Hz.
-// MOD = 90.3168MHz / (8*2) = 5644800 Hz
+	// ADC/DAC FS setup.
+	// ADC_MOD_CLK = CODEC_CLKIN / (NADC * MADC)
+	// DAC_MOD_CLK = CODEC_CLKIN / (NDAC * MDAC)
+	// ADC_FS = PLL_OUT / (NADC*MADC*AOSR)
+	// DAC_FS = PLL_OUT / (NDAC*MDAC*DOSR)
+	// FS = 90.3168MHz / (8*2*128) = 44100 Hz.
+	// MOD = 90.3168MHz / (8*2) = 5644800 Hz
 
-// Actual from Teensy: 44117.64706Hz * 128 => 5647058.82368Hz * 8*2 => 90352941.17888Hz
+	// Actual from Teensy: 44117.64706Hz * 128 => 5647058.82368Hz * 8*2 => 90352941.17888Hz
 
-// DAC clock config.
-// Note: MDAC*DOSR/32 >= RC, where RC is 8 for the default filter.
-// See Table 2-21
-// http://www.ti.com/lit/an/slaa463b/slaa463b.pdf
-// PB1 - RC = 8.  Use M8, N2
-// PB25 - RC = 12.  Use M8, N2
+	// DAC clock config.
+	// Note: MDAC*DOSR/32 >= RC, where RC is 8 for the default filter.
+	// See Table 2-21
+	// http://www.ti.com/lit/an/slaa463b/slaa463b.pdf
+	// PB1 - RC = 8.  Use M8, N2
+	// PB25 - RC = 12.  Use M8, N2
 
-#define DOSR                                                            128
-#define NDAC                                                              2
-#define MDAC                                                              8
+	#define DOSR      128
+	#define NDAC        2
+	#define MDAC        8
 
-#define AOSR                                                            128
-#define NADC                                                              2
-#define MADC                                                              8
+	#define AOSR      128
+	#define NADC        2
+	#define MADC        8
 
-// Signal Processing Modes, Playback and Recording.
-#define PRB_P                                                             1
-#define PRB_R                                                             1
-
+	// Signal Processing Modes, Playback and Recording.
+	#define PRB_P       1
+	#define PRB_R       1
+#elif AIC_FS == 48000
+	#error "FS 48000 not implemented yet"
+#elif AIC_FS == 96000
+	#error "FS 96000 not implemented yet"
+#elif AIC_FS == 192000
+	#error "FS 192000 not implemented yet"
+#else
+	#error "FS not implemented yet"
 #endif // end fs if block
 
 //**************************** Chip Setup **********************************//
@@ -486,7 +499,7 @@ unsigned int AudioControlTLV320AIC3206::aic_readPage(uint8_t page, uint8_t reg)
       uint16_t val = Wire.read();
 	  if (debugToSerial) {
 		Serial.print("controlTLV320AIC3206: Read Page.  Page: ");Serial.print(page);
-		Serial.print(" Reg: ");Serial.print(reg);
+		Serial.print(" Reg: ");Serial.print(reg,HEX);
 		Serial.print(".  Received: ");
 		Serial.println(val, HEX);
 	  }
@@ -514,7 +527,7 @@ bool AudioControlTLV320AIC3206::aic_writePage(uint8_t page, uint8_t reg, uint8_t
   if (debugToSerial) {
 	Serial.print("controlTLV320AIC3206: Write Page.  Page: ");Serial.print(page);
 	Serial.print(" Reg: ");Serial.print(reg);
-	Serial.print(" Val: ");Serial.println(val);
+	Serial.print(" Val: ");Serial.println(val,HEX);
   }
   if (aic_goToPage(page)) {
     Wire.beginTransmission(AIC3206_I2C_ADDR);
