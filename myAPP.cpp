@@ -135,13 +135,24 @@
     #include "input_adcs.h"
     AudioInputAnalogStereo  acq(ADC_PIN1,ADC_PIN2);
 
-  #elif (ACQ == _I2S) || (ACQ == _I2S_TYMPAN)
+  #elif (ACQ == _I2S)
     #include "input_i2s.h"
     AudioInputI2S         acq;
 
   #elif (ACQ == _I2S_32)
     #include "i2s_32.h"
     I2S_32         acq;
+
+  #elif (ACQ == _I2S_TYMPAN)
+    #if AIC_BITS==16
+      #include "input_i2s.h"
+      AudioInputI2S         acq;
+    #elif AIC_BITS==32
+      #include "i2s_32.h"
+      I2S_32         acq;
+    #else
+      #error "AIC_BITS"
+    #endif
   #endif
 
   #define mq (M_QUEU/NCH)

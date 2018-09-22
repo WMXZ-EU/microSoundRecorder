@@ -137,9 +137,9 @@ SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL}; //
   #define input_gain_dB   10.5f   //<<<======>>>
   
   #undef F_SAMP
-  #define F_SAMP 44100L // desired sampling frequency  //<<<======>>>
+  #define F_SAMP          44100L // desired sampling frequency  //<<<======>>>
   #define AIC_FS F_SAMP
-
+  #define AIC_BITS        32
 #endif
 
 //------------------------- configuration of trigger module ----------------------------------------------------

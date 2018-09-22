@@ -12,20 +12,21 @@
 
 //********************************  Constants  *******************************//
 
-#define AIC3206_I2C_ADDR                                             0x18
+#define AIC3206_I2C_ADDR   0x18
 
 
 #ifndef AIC_FS
-#  define AIC_FS                                                     44100UL
+#  define AIC_FS           44100UL
 #endif
 
-//define AIC_BITS                                                        16
-#define AIC_BITS                                                        32
-
-#define AIC_I2S_SLAVE                                                     1
+#ifndef AIC_BITS
+	//define AIC_BITS          16
+	#define AIC_BITS           32
+#endif
+#define AIC_I2S_SLAVE       1
 #if AIC_I2S_SLAVE
 // Direction of BCLK and WCLK (reg 27) is input if a slave:
-# define AIC_CLK_DIR                                                    0
+# define AIC_CLK_DIR        0
 #else
 // If master, make outputs:
 # define AIC_CLK_DIR                                                   0x0C
