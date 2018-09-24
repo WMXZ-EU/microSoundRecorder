@@ -6,12 +6,14 @@ Environmental Sound Recorder for Teensy 3.6. It builds on the BasicAudioLogger, 
 
 More information can be found in the build-in Wiki
 
+The microSoundRecorder_dev branch contains code the is work in progress (marked below with (dev))
+
 ## supports 
 ### build-in Interfaces
 - ADC, ADC_Stereo
 - I2S, I2S_32, I2S_QUAD, I2S_32_MONO 
-- I2S_TYMPAN
-- I2S_TDM
+- I2S_TYMPAN (dev)
+- I2S_TDM (dev)
 
 The I2S_32 mode allows acquisition of two 24 bit MEMS microphones
 
