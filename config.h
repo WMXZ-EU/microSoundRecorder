@@ -25,6 +25,7 @@
 //
 //----------------------------------------------------------------------------------------
 #define DO_DEBUG 1 // print debug info over usb-serial line  //<<<======>>>
+#define DO_SERIAL1 1 // print debug info over serial1 line  //<<<======>>>
 
 #define F_SAMP 48000 // desired sampling frequency  //<<<======>>>
 /*

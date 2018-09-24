@@ -37,7 +37,12 @@
  * V1 (27-Feb-2018): original version
  *          Feature: allow scheduled acquisition with hibernate during off times
  *          Feature: allow audio triggered acquisition
+ *          
+ * V2 (24-Sep-2018): more HW options
+ *          Added Feature: allow external trigger
  * 
+ * Modification History:
+ * ---------------------
  * DD4WH 2018_05_22
  * added MONO I2C32 bit mode
  * added file write for environmental logger
@@ -48,7 +53,7 @@
  *
  * WMXZ 09-Jun-2018
  * Added support for Tympan audio board  ( https://tympan.org )
- * requires tympan audio library (https://github.com/Tympan/Tympan_Library)
+ * requires tympan audio library (https://github.com/Tympan/Tympan_Library) (required files in ./src directory)
  * compile with Serial
  * 
  * WMXZ 23-Jun-2018
@@ -58,6 +63,7 @@
  * aligned acoustic interfaces
  * moved enviromental interface to own include file
  */
+ 
 #include "core_pins.h" // this call also kinetis.h
 
 // edits are to be done in the following config.h file
@@ -73,27 +79,17 @@
   #define M_QUEU 53 // number of buffers in aquisition queue
 #endif
 
-//==================== Tympan audio board interface ========================================
-#if ACQ == _I2S_TYMPAN
-  #include "src/Tympan.h"
-  AudioControlTLV320AIC3206 audioHardware(true);
-#endif
-
-//==================== Environmental sensors ========================================
-#if USE_ENVIRONMENTAL_SENSORS==1
-  #include "enviro.h"
-#endif
-
 //==================== Audio interface ========================================
 /*
  * standard Audio Interface
  * to avoid loading stock SD library
  * NO Audio.h is called but required header files are called directly
- * the custom multiplex object expects the 'link' to queue update function
  * 
  * PJRC's record_queue is modified to allow variable queue size
- * use if different data type requires modification to AudioStream
- * type "int16_t" is compatible with stock AudioStream
+ * 
+ * All data are handled and processed as 16 bit data
+ * 
+ * multi-channel data are demuxed in acq module and multiplexed again when saved to disk
  */
 /*-------------------------- mono (single channel) -----------------------------*/
 #if (ACQ == _ADC_0) || (ACQ == _ADC_D) || (ACQ == _I2S_32_MONO)
@@ -144,6 +140,11 @@
     I2S_32         acq;
 
   #elif (ACQ == _I2S_TYMPAN)
+    #include "src/Tympan.h"
+    TympanPins  tympPins(TYMPAN_REV_C);        //TYMPAN_REV_C or TYMPAN_REV_D
+    TympanBase  audioHardware(tympPins,true);
+
+
     #if AIC_BITS==16
       #include "input_i2s.h"
       AudioInputI2S         acq;
@@ -187,10 +188,19 @@
   #include "m_queue.h"
   mRecordQueue<mq> *queue = new mRecordQueue<mq> [NCH];
 
-  AudioConnection     patchCord1(acq,0, queue[0],0);
-  AudioConnection     patchCord2(acq,1, queue[1],0);
-  AudioConnection     patchCord3(acq,2, queue[2],0);
-  AudioConnection     patchCord4(acq,3, queue[3],0);
+  #if MDEL >=0
+    #undef MDEL
+    #define MDEL -1
+  #endif
+  
+  #if MDEL <0
+    AudioConnection     patchCord1(acq,0, queue[0],0);
+    AudioConnection     patchCord2(acq,1, queue[1],0);
+    AudioConnection     patchCord3(acq,2, queue[2],0);
+    AudioConnection     patchCord4(acq,3, queue[3],0);
+  #else
+    #error "event detections not yet implemented"
+  #endif
 
   
 /*-------------------------- (multi channel TDM) -----------------------------*/
@@ -210,17 +220,27 @@
     #define MDEL -1
   #endif
   
-  AudioConnection     patchCord0(acq,0,queue[0],0);
-  AudioConnection     patchCord1(acq,1,queue[1],0);
-  AudioConnection     patchCord2(acq,2,queue[2],0);
-  AudioConnection     patchCord3(acq,3,queue[3],0);
-  AudioConnection     patchCord4(acq,4,queue[4],0);
+  #if MDEL <0
+    AudioConnection     patchCord0(acq,0,queue[0],0);
+    AudioConnection     patchCord1(acq,1,queue[1],0);
+    AudioConnection     patchCord2(acq,2,queue[2],0);
+    AudioConnection     patchCord3(acq,3,queue[3],0);
+    AudioConnection     patchCord4(acq,4,queue[4],0);
+  #else
+    #error "event detections not yet implemented"
+  #endif
   //
 #else
   #error "invalid acquisition device"
 #endif
 
-// private 'libraries' included directly into sketch
+//==================== Environmental sensors ========================================
+#if USE_ENVIRONMENTAL_SENSORS==1
+  #include "enviro.h"
+#endif
+
+
+//================== private 'libraries' included directly into sketch===============
 #include "audio_mods.h"
 #include "audio_logger_if.h"
 #include "audio_hibernate.h"
@@ -262,6 +282,10 @@ extern "C" void setup() {
      while(!Serial && !digitalRead(3)); 
   #endif
    Serial.println("microSoundRecorder");
+   #if DO_SERIAL1==1
+     Serial1.begin(115200);
+     Serial1.println("microSoundRecorder");
+   #endif
 #endif
 /*
 // this reads the Teensy internal temperature sensor
@@ -277,8 +301,9 @@ extern "C" void setup() {
 #define MAUDIO (M_QUEU+MDEL+50)
 	AudioMemory (MAUDIO); // 600 blocks use about 200 kB (requires Teensy 3.6)
 
-  // stop I2S early (to be sure)
-  #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
+  // stop I2S early (to be sure) // it is running after global initialization 
+  #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) \
+                     || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
     I2S_stop();
   #endif
 
@@ -318,16 +343,20 @@ extern "C" void setup() {
   nsec=checkDutyCycle(&acqParameters, -1);
   if(nsec>0) 
   { 
-    #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
+    #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) \
+                       || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
       I2S_stopClock();
     #endif
-    setWakeupCallandSleep(nsec); // will not return if we should not continue with acquisition 
-    
-    #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
+    setWakeupCallandSleep(nsec); // will not return if we should not continue with acquisition (nsec>0)
+
+    // following wiil as of now not executed
+    #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) \
+                       || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
       I2S_startClock();
     #endif
   }
   
+  // we did not hibernate, so lets prepare acquisition
   // Now modify objects from audio library
   #if (ACQ == _ADC_0) || (ACQ == _ADC_D) || (ACQ == _ADC_S)
     ADC_modification(F_SAMP,DIFF);
@@ -356,7 +385,7 @@ extern "C" void setup() {
     // initalize tympan's tlv320aic3206
     //Enable the Tympan to start the audio flowing!
     audioHardware.enable(); // activate AIC
-    //enable the Tympman to detect whether something was plugged inot the pink mic jack
+    //enable the Tympman to detect whether something was plugged into the pink mic jack
     audioHardware.enableMicDetect(true);
     
     //Choose the desired audio input on the Typman...this will be overridden by the serviceMicDetect() in loop() 
@@ -365,9 +394,9 @@ extern "C" void setup() {
     //Set the desired input gain level
     audioHardware.setInputGain_dB(input_gain_dB); // set input volume, 0-47.5dB in 0.5dB setps
     
-    //Set the state of the LEDs
-//    audioHardware.setRedLED(HIGH);
-//    audioHardware.setAmberLED(LOW);
+    //Set the state of the LEDs // needs another Tympan class
+    audioHardware.setRedLED(HIGH);
+    audioHardware.setAmberLED(HIGH);
 
   #elif(ACQ == _I2S_TDM)
     I2S_modification(F_SAMP,32,8);
@@ -397,6 +426,10 @@ extern "C" void setup() {
   for(int ii=0; ii<NCH; ii++) queue[ii].begin();
   //
   Serial.println("End of Setup");
+  #if DO_SERIAL1==1
+    Serial1.println("End of Setup");
+  #endif
+
 }
 
 volatile uint32_t maxValue=0, maxNoise=0; // possibly be updated outside
@@ -425,12 +458,14 @@ extern "C" void loop() {
   
   if(nsec>0) // should sleep for nsec seconds
   { 
-    #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
+    #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) \
+                       || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
       I2S_stopClock();
     #endif
     setWakeupCallandSleep(nsec); // file closed sleep now
     
-    #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
+    #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) \
+                       || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
       I2S_startClock();
     #endif
   }
@@ -579,6 +614,9 @@ extern "C" void loop() {
     { 
 #if DO_DEBUG>0
       Serial.println("closed");
+      #if DO_SERIAL1==1
+        Serial1.println("closed");
+      #endif
 #endif
       // store config again if you wanted time of latest file stored
       uSD.storeConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
@@ -607,6 +645,9 @@ extern "C" void loop() {
       if(snipParameters.thresh>=0) mustClose=0; else mustClose=-1;
 #if DO_DEBUG>0
       Serial.println("file closed");
+      #if DO_SERIAL1==1
+        Serial1.println("file closed");
+      #endif
 #endif
     }
   }
@@ -617,9 +658,14 @@ extern "C" void loop() {
   static uint32_t t0=0;
   loopCount++;
   if(millis()>t0+1000)
-  {  Serial.printf("\tloop: %5d %4d; %5d %5d; %5d; ",
+  { Serial.printf("\tloop: %5d %4d; %5d %5d; %5d; ",
           loopCount, uSD.getNbuf(), t3,t4, 
           AudioMemoryUsageMax());
+    #if DO_SERIAL1==1
+      Serial1.printf("\tloop: %5d %4d; %5d %5d; %5d; ",
+            loopCount, uSD.getNbuf(), t3,t4, 
+            AudioMemoryUsageMax());
+    #endif
     AudioMemoryUsageMaxReset();
     t3=1<<31;
     t4=0;
@@ -639,7 +685,13 @@ extern "C" void loop() {
     Serial.printf("%5d %5d",PDB0_CNT, PDB0_MOD);
   #endif
   
+  #if DO_DEBUG>0
     Serial.println();
+    #if DO_SERIAL1 == 1
+      Serial1.println();
+    #endif
+  #endif
+  
     t0=millis();
     loopCount=0;
     maxValue=0;
