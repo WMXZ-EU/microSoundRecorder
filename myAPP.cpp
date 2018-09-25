@@ -312,10 +312,19 @@ extern "C" void setup() {
 //  while(!Serial && (millis()<3000));
 //  ledOff();
 //
+
 //  check if RTC clock is about the compile time clock
-//  uint32_t t0=rtc_get();
-//  uint32_t t1=(uint32_t)&__rtc_localtime;
-//  if((t1-t0)>100) rtc_set(t1);
+  uint32_t t0=rtc_get();
+  uint32_t t1=(uint32_t)&__rtc_localtime;
+  if(t1 > (t0 + 100)) 
+  {
+    Serial.print("+"); Serial.print(t1-t0); Serial.println(" sec");
+    rtc_set(t1);
+  }
+  else
+  {
+    Serial.print("-"); Serial.print(t0-t1); Serial.println(" sec");
+  }
 
   //
   uSD.init();
@@ -425,11 +434,12 @@ extern "C" void setup() {
 
   for(int ii=0; ii<NCH; ii++) queue[ii].begin();
   //
-  Serial.println("End of Setup");
-  #if DO_SERIAL1==1
-    Serial1.println("End of Setup");
+  #if DO_DEBUG > 0
+    Serial.println("End of Setup");
+    #if DO_SERIAL1==1
+      Serial1.println("End of Setup");
+    #endif
   #endif
-
 }
 
 volatile uint32_t maxValue=0, maxNoise=0; // possibly be updated outside
