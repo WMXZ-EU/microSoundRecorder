@@ -136,7 +136,7 @@ void I2S_dividers(uint32_t *iscl, uint32_t fsamp, uint32_t nbits)
     for(int ii=1;ii<=32;ii++) 
     { float xx;
       xx=A*ii-(int32_t)(A*ii);
-      if(xx<mn && A*ii<256.0) { mn=xx; i1=ii; i2=A*ii;} //select first candidate
+      if(xx<mn && A*ii<4096.0) { mn=xx; i1=ii; i2=A*ii;} //select first candidate
     }
     iscl[0] = (int) (i1-1);
     iscl[1] = (int) (i2-1);
