@@ -709,5 +709,5 @@ extern "C" void loop() {
  }
 #endif
 
-  asm("wfi"); // to save some power switch off idle cpu
+  asm(" wfi"); // to save some power switch off idle cpu
 }
