@@ -173,9 +173,9 @@ void I2S_modification(uint32_t fsamp, uint16_t nbits, int nch)
 	float fpll = (float) F_CPU;
 	if((F_CPU==48000000) || F_CPU==24000000) fpll=96000000;
 
-  float fs = (fpll * (iscl[0]+1.0f)) / (iscl[1]+1l) / 2 / (iscl[2]+1l) / ((float)nch*nbits);
-  Serial.printf("%d %d %d %d %d %d %d\n\r",
-                F_CPU, fsamp, (int)fs, nbits,iscl[0]+1,iscl[1]+1,iscl[2]+1);
+	float fs = (fpll * (iscl[0]+1.0f)) / (iscl[1]+1l) / 2 / (iscl[2]+1l) / ((float)nch*nbits);
+	Serial.printf("%d %d %d %d %d %d %d %d\n\r",
+                F_CPU, fpll, fsamp, (int)fs, nbits,iscl[0]+1,iscl[1]+1,iscl[2]+1);
 #endif
   // stop I2S
   I2S0_RCSR &= ~(I2S_RCSR_RE | I2S_RCSR_BCE);
