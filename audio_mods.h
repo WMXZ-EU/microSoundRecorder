@@ -131,7 +131,9 @@ void I2S_dividers(uint32_t *iscl, uint32_t fsamp, uint32_t nbits)
     int64_t i1 = 1;
     int64_t i2 = 1;
     int64_t i3 = iscl[2]+1;
-    float A=F_CPU/2.0f/i3/((float)nbits*fsamp);
+	float fpll = (float) F_CPU;
+	if((F_CPU==48000000) || F_CPU==24000000) fpll=96000000;
+    float A=fpll/2.0f/i3/((float)nbits*fsamp);
     float mn=1.0; 
     for(int ii=1;ii<=256;ii++) 
     { float xx;
