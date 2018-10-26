@@ -140,7 +140,7 @@
     I2S_32         acq;
 
   #elif (ACQ == _I2S_TYMPAN)
-    #include "src/Tympan.h"
+    #include "src/tympan/Tympan.h"
     TympanPins  tympPins(TYMPAN_REV_C);        //TYMPAN_REV_C or TYMPAN_REV_D
     TympanBase  audioHardware(tympPins,true);
 

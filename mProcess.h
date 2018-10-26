@@ -41,7 +41,9 @@ typedef struct
 */
 
 //
-int32_t aux[AUDIO_BLOCK_SAMPLES];
+int32_t aux[2*AUDIO_BLOCK_SAMPLES];
+int32_t buff1[AUDIO_BLOCK_SAMPLES];
+int32_t buff2[AUDIO_BLOCK_SAMPLES];
 
 extern volatile uint32_t maxValue, maxNoise;
 
@@ -75,13 +77,37 @@ private:
    int32_t win1;       // detection watchdog window (in units of audio blocks typicaly 10x win0)
    int32_t extr;       // min extraction window 
    int32_t inhib;      // guard window (inhibit followon secondary detections)
-   int32_t nrep;       // noise only interval (
+   int32_t nrep;       // noise only interval (used to send some data every now and then)
   //
-  int32_t nest1, nest2;// background noise estimate
-     
+  int32_t nest1, nest2; // background noise estimate
+  int32_t old1, old2;   // last value of buffer   
+
   audio_block_t *out1, *out2; // not used yet
+  
+  void doProcess(audio_block_t *tmp1, audio_block_t *tmp2);
+
 };
- 
+
+#if PROCESS_TRIGGER == CENTROID_TRIGGER
+  #define CMSIS 1
+#else
+  #define CMSIS 0
+#endif
+
+#if CMSIS>0 
+  #include "src/cmsis/arm_math.h"
+//  #include "src/arm_const_structs.h"
+
+/*
+arm_status arm_rfft_init_q31(
+      arm_rfft_instance_q31 * S,
+      uint32_t fftLenReal,
+      uint32_t ifftFlagR,
+      uint32_t bitReverseFlag)
+*/
+  arm_rfft_instance_q31 S32;
+#endif
+
 void mProcess::begin(SNIP_Parameters_s *param)
 {
   sigCount=-1;
@@ -97,35 +123,19 @@ void mProcess::begin(SNIP_Parameters_s *param)
   inhib=param->inhib;
   nrep=param->nrep;
 
-  nest1=1<<10;
-  nest2=1<<10;
-  
-  out1=NULL;
-  out2=NULL;
+  nest1 = nest2 = 1<<10;
+  old1 = old2 = 0;
+
+  out1 = out2 = NULL;
+
+#if CMSIS>0
+  arm_rfft_init_q31( &S32, 256,0,1);
+#endif
 
   watchdog=0;
 }
 
-inline void mDiff(int32_t *aux, int16_t *inp, int16_t ndat, int16_t old)
-{
-  aux[0]=(inp[0]-old);
-  for(int ii=1; ii< ndat; ii++) aux[ii]=(inp[ii] - inp[ii-1]);  
-}
 
-inline int32_t mSig(int32_t *aux, int16_t ndat)
-{ int32_t maxVal=0;
-  for(int ii=0; ii< ndat; ii++)
-  { aux[ii] *= aux[ii];
-    if(aux[ii]>maxVal) maxVal=aux[ii];
-  }
-  return maxVal;
-}
-
-inline int32_t avg(int32_t *aux, int16_t ndat)
-{ int64_t avg=0;
-  for(int ii=0; ii< ndat; ii++){ avg+=aux[ii]; }
-  return avg/ndat;
-}
 
 void mProcess::update(void)
 {
@@ -156,48 +166,124 @@ void mProcess::update(void)
   if(inp2) release(inp2);
 
   // do here something useful with data 
+  doProcess(tmp1,tmp2);
 
-  int16_t ndat = AUDIO_BLOCK_SAMPLES;
+  // clean up audio_blocks
+  if(out1) release(out1);
+  if(out2) release(out2);
   
-#if PROCESS_TRIGGER == AUDIO_TRIGGER || PROCESS_TRIGGER == LEFT_TRIGGER
+  // keep data for next round
+  out1=tmp1;
+  out2=tmp2;
+}
+
+/********************************** Signal Processing ***********************************/
+#include "mMath.h" // contains local signal processing functions
+
+void mProcess::doProcess(audio_block_t *tmp1, audio_block_t *tmp2)
+{
+  int16_t ndat = AUDIO_BLOCK_SAMPLES;
+
+// preprocess data  
+#if (PROCESS_TRIGGER == STEREO_TRIGGER) || (PROCESS_TRIGGER == LEFT_TRIGGER)
   // example is a simple threshold detector on both channels
   // simple high-pass filter (6 db/octave)
   // followed by threshold detector
   //
   // first channel
   if(tmp1)
-  {
-    mDiff(aux, tmp1->data, ndat, 0);//out1? out1->data[ndat-1]: tmp1->data[0]);
+  { int16_t old =  out1?out1->data[ndat-1]:0;
+    mDiff(aux, tmp1->data, ndat, old);
     max1Val = mSig(aux, ndat);
     avg1Val = avg(aux, ndat);
   }
   else
   {
-    max1Val = 0;
-    avg1Val = 0;
+    avg1Val = max1Val = 0;
   }
-  
-#elif PROCESS_TRIGGER == AUDIO_TRIGGER || PROCESS_TRIGGER == RIGHT_TRIGGER
+#endif
+
+#if (PROCESS_TRIGGER == STEREO_TRIGGER) || (PROCESS_TRIGGER == RIGHT_TRIGGER)
   // second channel
   if(tmp2)
   {
-    mDiff(aux, tmp2->data, ndat, 0);//out2? out2->data[ndat-1]: tmp2->data[0]);
+    int16_t old =  out2?out2->data[ndat-1]:0;
+    mDiff(aux, tmp2->data, ndat, old);//out2? out2->data[ndat-1]: tmp2->data[0]);
     max2Val = mSig(aux, ndat);
     avg2Val = avg(aux, ndat);
   }
   else
   {
-    max2Val = 0;
-    avg2Val = 0;
+    avg2Val = max2Val = 0;
   }
+#endif
 
-#elif PROCESS_TRIGGER == ADC_TRIGGER
+#if PROCESS_TRIGGER == ADC_TRIGGER
   // second example is a simple threshold detector on external ADC
   // followed by threshold detector
-  avg1Val=max1Val=analogRead(expAnalogPin);
-  avg2Val=max2Val=0;
+  max1Val=analogRead(expAnalogPin);
+  avg1Val = max1Val; 
+  avg2Val = max2Val=0;
 #endif
+
+#if PROCESS_TRIGGER == CENTROID_TRIGGER
+  // third example is a simple threshold detector on spectral centroid
+  int32_t centFreq1, centPow1, peakFreq1, peakPow1;
+  int32_t centFreq2, centPow2, peakFreq2, peakPow2;
+  if(tmp1)
+  {
+    int16_t old =  out1?out1->data[ndat-1]:0;
+    mDiff(aux, tmp1->data, ndat, old);
+    max1Val = mSig(aux, ndat);
+    avg1Val = avg(aux, ndat);
+
+    // fft input data
+    doFFT(aux, tmp1->data, buff1, ndat);
+    // estimate centrod frequency
+    centFreq1=doCentroidFreq(aux,ndat);
+    // estimate centriod spectral power
+    centPow1=doCentroidPow(aux,ndat,centFreq1);
+    // estimate peak frequency
+    peakFreq1=doPeakFreq(aux,ndat);
+    // estimate peak spectral power
+    peakPow1=doPeakPow(aux,ndat,peakFreq1);
+    // estimate detection variable
+    max1Val = detVar(max1Val,centFreq1,centPow1,peakFreq1,peakPow1);
+  }
+  else
+  {
+    // estimate detection variable
+    avg1Val = max1Val = 0;
+  }
+
+  if(tmp2)
+  {
+    int16_t old =  out2?out2->data[ndat-1]:0;
+    mDiff(aux, tmp2->data, ndat, old);  //out2? out2->data[ndat-1]: tmp2->data[0]);
+    max2Val = mSig(aux, ndat);
+    avg2Val = avg(aux, ndat);
+
+    // fft input data
+    doFFT(aux, tmp2->data, buff2, ndat);
+    // estimate centrod frequency
+    centFreq2=doCentroidFreq(aux,ndat);
+    // estimate centriod spectral power
+    centPow2=doCentroidPow(aux,ndat,centFreq2);
+    // estimate peak frequency
+    peakFreq2=doPeakFreq(aux,ndat);
+    // estimate peak spectral power
+    peakPow2=doPeakPow(aux,ndat,peakFreq2);
+    // estimate detection variable
+    max2Val = detVar(max2Val,centFreq2,centPow2,peakFreq2,peakPow2);
+  }
+  else
+  {
+    // estimate detection variable
+    avg2Val = max2Val = 0;
+  }
   
+#endif
+
   //
   // if threshold detector fires, the open transmisssion of input data for "extr"
   // due to use of temprary storage, the block before detection will be transmitted first
@@ -274,11 +360,6 @@ void mProcess::update(void)
   tmp=(max1Val>max2Val)? max1Val:max2Val;
   maxValue=(tmp>maxValue)? tmp:maxValue;
 
-  // clean up audio_blocks
-  if(out1) release(out1);
-  if(out2) release(out2);
-  out1=tmp1;
-  out2=tmp2;
 }
 
 #endif

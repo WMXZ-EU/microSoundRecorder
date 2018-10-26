@@ -147,14 +147,24 @@ SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL}; //
 #endif
 
 //------------------------- configuration of trigger module ----------------------------------------------------
-#define AUDIO_TRIGGER 0
+#define STEREO_TRIGGER 0
 #define LEFT_TRIGGER 1
 #define RIGHT_TRIGGER 2
 #define ADC_TRIGGER 3
+#define CENTROID_TRIGGER 4
 
-#define PROCESS_TRIGGER AUDIO_TRIGGER
+#define PROCESS_TRIGGER CENTROID_TRIGGER
 #if PROCESS_TRIGGER == ADC_TRIGGER
   #define extAnalogPin 1
+#endif
+
+#if PROCESS_TRIGGER==CENTROID_TRIGGER // the follwing limits could be put to own menu
+  #define FC_MIN 1      // min centroid frequency bin
+  #define FC_MAX 255    // max centroid frequency bin
+  #define FP_MIN 1      // min peak frequency bin
+  #define FP_MAX 255    // max frequency bin
+  #define PC_THR 10000  // centroid power threshold
+  #define PP_THR 10000  // peak power threshold
 #endif
 //
 /*********************** End possible User Modifications ********************************/
