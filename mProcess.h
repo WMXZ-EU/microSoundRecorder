@@ -225,8 +225,6 @@ void mProcess::doProcess(audio_block_t *tmp1, audio_block_t *tmp2)
 
 #if PROCESS_TRIGGER == CENTROID_TRIGGER
   // third example is a simple threshold detector on spectral centroid
-  int32_t centFreq1, centPow1, peakFreq1, peakPow1;
-  int32_t centFreq2, centPow2, peakFreq2, peakPow2;
   if(tmp1)
   {
     int16_t old =  out1?out1->data[ndat-1]:0;
@@ -237,19 +235,18 @@ void mProcess::doProcess(audio_block_t *tmp1, audio_block_t *tmp2)
     // fft input data
     doFFT(aux, tmp1->data, buff1, ndat);
     // estimate centrod frequency
-    centFreq1=doCentroidFreq(aux,ndat);
+    int32_t centFreq=doCentroidFreq(aux,ndat);
     // estimate centriod spectral power
-    centPow1=doCentroidPow(aux,ndat,centFreq1);
+    int32_t centPow=doCentroidPow(aux,ndat,centFreq);
     // estimate peak frequency
-    peakFreq1=doPeakFreq(aux,ndat);
+    int32_t peakFreq=doPeakFreq(aux,ndat);
     // estimate peak spectral power
-    peakPow1=doPeakPow(aux,ndat,peakFreq1);
+    int32_t peakPow=doPeakPow(aux,ndat,peakFreq);
     // estimate detection variable
-    max1Val = detVar(max1Val, avg1Val, centFreq1,centPow1,peakFreq1,peakPow1);
+    max1Val = detVar(max1Val, avg1Val, centFreq,centPow,peakFreq,peakPow);
   }
   else
-  {
-    // estimate detection variable
+  { // estimate detection variable
     avg1Val = max1Val = 0;
   }
 
@@ -263,19 +260,18 @@ void mProcess::doProcess(audio_block_t *tmp1, audio_block_t *tmp2)
     // fft input data
     doFFT(aux, tmp2->data, buff2, ndat);
     // estimate centrod frequency
-    centFreq2=doCentroidFreq(aux,ndat);
+    int32_t centFreq=doCentroidFreq(aux,ndat);
     // estimate centriod spectral power
-    centPow2=doCentroidPow(aux,ndat,centFreq2);
+    int32_t centPow=doCentroidPow(aux,ndat,centFreq);
     // estimate peak frequency
-    peakFreq2=doPeakFreq(aux,ndat);
+    int32_t peakFreq=doPeakFreq(aux,ndat);
     // estimate peak spectral power
-    peakPow2=doPeakPow(aux,ndat,peakFreq2);
+    int32_t peakPow=doPeakPow(aux,ndat,peakFreq);
     // estimate detection variable
-    max2Val = detVar(max2Val,avg2Val, centFreq2,centPow2,peakFreq2,peakPow2);
+    max2Val = detVar(max2Val,avg2Val, centFreq,centPow,peakFreq,peakPow);
   }
   else
-  {
-    // estimate detection variable
+  { // estimate detection variable
     avg2Val = max2Val = 0;
   }
   
