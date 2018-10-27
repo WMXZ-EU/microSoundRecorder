@@ -122,7 +122,7 @@ SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL}; //
 // this may be useful when using a powerbank, or other cases where frequent booting is desired
 // is used in audio_hibernate.h
 //#define SLEEP_SHORT             // comment when sleep duration is not limited   //<<<======>>>
-#define ShortSleepDuration 60     // value in seconds     //<<<======>>>
+#define ShortSleepDuration 60     // value in seconds (max sleep duration)    //<<<======>>>
 
 //------------------------- Additional sensors ---------------------------------------------------------------
 #define USE_ENVIRONMENTAL_SENSORS 0 // to use environmental sensors set to 1 otherwise set to 0  //<<<======>>>
