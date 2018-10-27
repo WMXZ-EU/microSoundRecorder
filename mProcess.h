@@ -245,7 +245,7 @@ void mProcess::doProcess(audio_block_t *tmp1, audio_block_t *tmp2)
     // estimate peak spectral power
     peakPow1=doPeakPow(aux,ndat,peakFreq1);
     // estimate detection variable
-    max1Val = detVar(max1Val,centFreq1,centPow1,peakFreq1,peakPow1);
+    max1Val = detVar(max1Val, avg1Val, centFreq1,centPow1,peakFreq1,peakPow1);
   }
   else
   {
@@ -271,7 +271,7 @@ void mProcess::doProcess(audio_block_t *tmp1, audio_block_t *tmp2)
     // estimate peak spectral power
     peakPow2=doPeakPow(aux,ndat,peakFreq2);
     // estimate detection variable
-    max2Val = detVar(max2Val,centFreq2,centPow2,peakFreq2,peakPow2);
+    max2Val = detVar(max2Val,avg2Val, centFreq2,centPow2,peakFreq2,peakPow2);
   }
   else
   {

@@ -165,6 +165,7 @@ SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL}; //
   #define FP_MAX 255    // max frequency bin
   #define PC_THR 10000  // centroid power threshold
   #define PP_THR 10000  // peak power threshold
+  #define PW_THR 100    // average power threshold
 #endif
 //
 /*********************** End possible User Modifications ********************************/
