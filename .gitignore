@@ -45,3 +45,11 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# VS files
+.vs*
+
+#local wiki support files
+DataSheets
+Misc_info
+Sound_Examples

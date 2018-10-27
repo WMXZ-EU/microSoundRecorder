@@ -47,6 +47,26 @@ int32_t buff2[AUDIO_BLOCK_SAMPLES];
 
 extern volatile uint32_t maxValue, maxNoise;
 
+#if PROCESS_TRIGGER == CENTROID_TRIGGER
+  #define CMSIS 1
+#else
+  #define CMSIS 0
+#endif
+
+#if CMSIS>0 
+  #include "src/cmsis/arm_math.h"
+
+/*
+arm_status arm_rfft_init_q31(
+      arm_rfft_instance_q31 * S,
+      uint32_t fftLenReal,
+      uint32_t ifftFlagR,
+      uint32_t bitReverseFlag)
+*/
+  arm_rfft_instance_q31 S32;
+#endif
+
+//--------------------------------------------------------------------------------------
 class mProcess: public AudioStream
 {
 public:
@@ -82,31 +102,10 @@ private:
   int32_t nest1, nest2; // background noise estimate
   int32_t old1, old2;   // last value of buffer   
 
-  audio_block_t *out1, *out2; // not used yet
+  audio_block_t *out1, *out2; // keep copy of input
   
-  void doProcess(audio_block_t *tmp1, audio_block_t *tmp2);
-
+  void doProcess(audio_block_t *tmp1, audio_block_t *tmp2); // is called from update
 };
-
-#if PROCESS_TRIGGER == CENTROID_TRIGGER
-  #define CMSIS 1
-#else
-  #define CMSIS 0
-#endif
-
-#if CMSIS>0 
-  #include "src/cmsis/arm_math.h"
-//  #include "src/arm_const_structs.h"
-
-/*
-arm_status arm_rfft_init_q31(
-      arm_rfft_instance_q31 * S,
-      uint32_t fftLenReal,
-      uint32_t ifftFlagR,
-      uint32_t bitReverseFlag)
-*/
-  arm_rfft_instance_q31 S32;
-#endif
 
 void mProcess::begin(SNIP_Parameters_s *param)
 {
@@ -134,8 +133,6 @@ void mProcess::begin(SNIP_Parameters_s *param)
 
   watchdog=0;
 }
-
-
 
 void mProcess::update(void)
 {
@@ -220,7 +217,7 @@ void mProcess::doProcess(audio_block_t *tmp1, audio_block_t *tmp2)
 
 #if PROCESS_TRIGGER == ADC_TRIGGER
   // second example is a simple threshold detector on external ADC
-  // followed by threshold detector
+  // will trigger if ADC reading exceeds a threshold
   max1Val=analogRead(expAnalogPin);
   avg1Val = max1Val; 
   avg2Val = max2Val=0;
