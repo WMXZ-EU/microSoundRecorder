@@ -153,20 +153,20 @@ SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL}; //
 #define ADC_TRIGGER 3
 #define CENTROID_TRIGGER 4
 
-#define PROCESS_TRIGGER CENTROID_TRIGGER
+#define PROCESS_TRIGGER CENTROID_TRIGGER  // can be changed //<<<======>>>
 #if PROCESS_TRIGGER == ADC_TRIGGER
-  #define extAnalogPin 1
+  #define extAnalogPin 1                  // can be changed //<<<======>>>
 #endif
 
 #if PROCESS_TRIGGER==CENTROID_TRIGGER // the follwing limits could be put to own menu
   // constants should be adapted to individual application
-  #define FC_MIN 1      // min centroid frequency bin
-  #define FC_MAX 255    // max centroid frequency bin
-  #define FP_MIN 1      // min peak frequency bin
-  #define FP_MAX 255    // max frequency bin
-  #define PC_THR 10000  // centroid power threshold
-  #define PP_THR 10000  // peak power threshold
-  #define PW_THR 100    // average power threshold
+  #define FC_MIN 1      // min centroid frequency bin   // can be changed //<<<======>>>
+  #define FC_MAX 255    // max centroid frequency bin   // can be changed //<<<======>>>
+  #define FP_MIN 1      // min peak frequency bin       // can be changed //<<<======>>>
+  #define FP_MAX 255    // max frequency bin            // can be changed //<<<======>>>
+  #define PC_THR 10000  // centroid power threshold     // can be changed //<<<======>>>
+  #define PP_THR 10000  // peak power threshold         // can be changed //<<<======>>>
+  #define PW_THR 100    // average power threshold      // can be changed //<<<======>>>
 #endif
 //
 /*********************** End possible User Modifications ********************************/
