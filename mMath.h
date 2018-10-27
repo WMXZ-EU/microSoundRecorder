@@ -67,6 +67,7 @@ inline int32_t avg(int32_t *aux, int16_t ndat)
             for(int ii=0; ii<ndat; ii++) aux[ii]=inp[ii];
         #endif
     }
+ 
     // estimate centrod frequency
     inline int32_t doCentroidFreq(int32_t * aux, int16_t ndat)
     {
@@ -84,6 +85,7 @@ inline int32_t avg(int32_t *aux, int16_t ndat)
     {
         return aux[ii];
     }
+ 
     // estimate peak frequency
     inline int32_t doPeakFreq(int32_t *aux, int16_t ndat)
     {   int32_t peakFreq=0;
@@ -91,13 +93,15 @@ inline int32_t avg(int32_t *aux, int16_t ndat)
         for(int ii=0; ii<ndat; ii++) if(aux[ii]>peakVal){ peakVal=aux[ii]; peakFreq=ii;}
         return peakFreq;
     }
+ 
     // estimate peak spectral power
     inline int32_t doPeakPow(int32_t *aux, int16_t ndat, int32_t ii)
     {
         return aux[ii];
     }
+ 
     // estimate detection variable
-    int32_t detVar(int32_t maxVal,int32_t avgVal,int32_t centFreq,int32_t centPow,int32_t peakFreq, int32_t peakPow)
+     int32_t detVar(int32_t maxVal,int32_t avgVal,int32_t centFreq,int32_t centPow,int32_t peakFreq, int32_t peakPow)
     {
         if((centFreq < FC_MIN) || (centFreq > FC_MAX)) maxVal=0;
         if((peakFreq < FP_MIN) || (peakFreq > FP_MAX)) maxVal=0;

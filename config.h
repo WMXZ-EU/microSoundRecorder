@@ -159,6 +159,7 @@ SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL}; //
 #endif
 
 #if PROCESS_TRIGGER==CENTROID_TRIGGER // the follwing limits could be put to own menu
+  // constants should be adapted to individual application
   #define FC_MIN 1      // min centroid frequency bin
   #define FC_MAX 255    // max centroid frequency bin
   #define FP_MIN 1      // min peak frequency bin
