@@ -54,7 +54,7 @@ extern volatile uint32_t maxValue, maxNoise;
 #endif
 
 #if CMSIS>0 
-  #include "src/cmsis/arm_math.h"
+  #include "arm_math.h"
 
 /*
 arm_status arm_rfft_init_q31(

@@ -62,6 +62,9 @@
  * WMXZ 01-Jul-2018
  * aligned acoustic interfaces
  * moved enviromental interface to own include file
+ * 
+ * WMXZ 30-oct-2019
+ * added support for CS42448 codec interface
  */
  
 #include "core_pins.h" // this call also kinetis.h
@@ -140,7 +143,7 @@
     I2S_32         acq;
 
   #elif (ACQ == _I2S_TYMPAN)
-    #include "src/tympan/Tympan.h"
+    #include "Tympan.h"
     TympanPins  tympPins(TYMPAN_REV_C);        //TYMPAN_REV_C or TYMPAN_REV_D
     TympanBase  audioHardware(tympPins,true);
 
@@ -230,6 +233,37 @@
     #error "event detections not yet implemented"
   #endif
   //
+/*-------------------------- (multi channel CS42448) -----------------------------*/
+#elif ACQ == _I2S_CS42448      // not yet modified for event detections and delays
+
+  #define NCH 6 // if changing number of channels adapt Audio connections  // NCH must be less or equal than 8
+  
+  #include "i2s_tdm.h"
+  I2S_TDM         acq;
+  
+  #define mq (M_QUEU/NCH)
+  #include "m_queue.h"
+  mRecordQueue<mq> queue[NCH];
+
+  #if MDEL >=0
+    #undef MDEL
+    #define MDEL -1
+  #endif
+  
+  #if MDEL <0
+    AudioConnection     patchCord0(acq,0,queue[0],0);
+    AudioConnection     patchCord1(acq,1,queue[1],0);
+    AudioConnection     patchCord2(acq,2,queue[2],0);
+    AudioConnection     patchCord3(acq,3,queue[3],0);
+    AudioConnection     patchCord4(acq,4,queue[4],0);
+    AudioConnection     patchCord5(acq,5,queue[5],0);
+  #else
+    #error "event detections not yet implemented"
+  #endif
+  //
+  #include "control_cs42448.h"
+  AudioControlCS42448 audioHardware;
+  //
 #else
   #error "invalid acquisition device"
 #endif
@@ -270,16 +304,16 @@ extern void rtc_set(unsigned long t);
 
 //__________________________General Arduino Routines_____________________________________
 
-extern "C" void setup() {
+void setup() {
   // put your setup code here, to run once:
   int16_t nsec;
-   pinMode(3,INPUT_PULLUP); // needed to enter menu if grounded
+   pinMode(MENU_PIN,INPUT_PULLUP); // needed to enter menu if grounded
 
 #if DO_DEBUG>0
   #if ACQ == _I2S_TYMPAN
     while(!Serial && (millis()<3000)); // use this for testing without menu
   #else
-     while(!Serial && !digitalRead(3)); 
+     while(!Serial && !digitalRead(MENU_PIN)); 
   #endif
    Serial.println("microSoundRecorder");
    #if DO_SERIAL1==1
@@ -303,7 +337,7 @@ extern "C" void setup() {
 
   // stop I2S early (to be sure) // it is running after global initialization 
   #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) \
-                     || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
+                     || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM) || (ACQ == _I2S_CS42448 ) )
     I2S_stop();
   #endif
 
@@ -338,9 +372,9 @@ extern "C" void setup() {
    uSD.writeTemperature(temperature, pressure, humidity, lux);
 #endif
 
-  // if pin3 is connected to GND enter menu mode
+  // if MENU_PIN (e.g. pin3) is connected to GND enter menu mode
   int ret;
-  if(!digitalReadFast(3))
+  if(!digitalReadFast(MENU_PIN))
   { ret=doMenu();
     if(ret<0) ;  // should shutdown now (not implemented) // keep compiler happy
       
@@ -353,14 +387,14 @@ extern "C" void setup() {
   if(nsec>0) 
   { 
     #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) \
-                       || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
+                       || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM) || (ACQ == _I2S_CS42448 ))
       I2S_stopClock();
     #endif
     setWakeupCallandSleep(nsec); // will not return if we should not continue with acquisition (nsec>0)
 
     // following wiil as of now not executed
     #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) \
-                       || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
+                       || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM) || (ACQ == _I2S_CS42448 ))
       I2S_startClock();
     #endif
   }
@@ -407,10 +441,17 @@ extern "C" void setup() {
     audioHardware.setRedLED(HIGH);
     audioHardware.setAmberLED(HIGH);
 
-  #elif(ACQ == _I2S_TDM)
+  #elif ((ACQ == _I2S_TDM) )
     I2S_modification(F_SAMP,32,8);
     int16_t nbits=NSHIFT; 
     acq.digitalShift(nbits); 
+    
+  #elif ((ACQ == _I2S_CS42448 ))
+    I2S_modification(F_SAMP,32,8);
+    int16_t nbits=NSHIFT; 
+    acq.digitalShift(nbits); 
+    //
+    audioHardware.enable();
   #endif
 
   //are we using the eventTrigger?
@@ -445,7 +486,7 @@ extern "C" void setup() {
 volatile uint32_t maxValue=0, maxNoise=0; // possibly be updated outside
 int16_t tempBuffer[AUDIO_BLOCK_SAMPLES*NCH];
 
-extern "C" void loop() {
+void loop() {
   // put your main code here, to run repeatedly:
   int16_t nsec;
   uint32_t to=0,t1,t2;

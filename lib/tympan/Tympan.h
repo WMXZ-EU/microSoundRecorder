@@ -94,13 +94,13 @@ class TympanPins_RevD : public TympanPins {
 		TympanPins_RevD(void) : TympanPins(TYMPAN_REV_D) {};
 };
 
-class TympanBase : public AudioControlTLV320AIC3206
+class TympanBase : public mAudioControlTLV320AIC3206
 {
 	public:
-		TympanBase(TympanPins &_pins) : AudioControlTLV320AIC3206(_pins.resetAIC) {
+		TympanBase(TympanPins &_pins) : mAudioControlTLV320AIC3206(_pins.resetAIC) {
 			setupPins(_pins);
 		}
-		TympanBase(TympanPins &_pins, bool _debugToSerial) : AudioControlTLV320AIC3206(_pins.resetAIC, _debugToSerial) {
+		TympanBase(TympanPins &_pins, bool _debugToSerial) : mAudioControlTLV320AIC3206(_pins.resetAIC, _debugToSerial) {
 			setupPins(_pins);
 		}
 		void setupPins(TympanPins &_pins) {

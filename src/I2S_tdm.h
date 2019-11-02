@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
 // WMXZ: modified for microSoundRecorder
-// hard-coded for 8 TDM channels and 5 data channels
+// hard-coded for 8 TDM channels and NCH data channels
 
 #ifndef _i2s_tdm_h_
 #define _i2s_tdm_h_

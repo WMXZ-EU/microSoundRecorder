@@ -45,9 +45,14 @@
 #define _I2S_QUAD       5 // I2S (16 bit quad audio)
 #define _I2S_32_MONO    6 // I2S (32 bit mono audio), eg. one ICS43434 mic
 #define _I2S_TYMPAN     7 // I2S (16/32 bit tympan stereo audio audio) for use the tympan board
-#define _I2S_TDM        8 // I2S (8 channel TDM) // only first 5 channels are used (modify myAcq.h for less or more channels)
+#define _I2S_TDM        8 // I2S (8 channel TDM) // only first 5 channels are used (modify myAPP.cpp for less or more channels)
+#define _I2S_CS42448    9 // I2S CS42448 audio board - 6chan input 8-chan output (input only)
 
-#define ACQ   _I2S_TYMPAN  // selected acquisition interface  //<<<======>>>
+//------------------------- Additional sensors ---------------------------------------------------------------
+#define USE_ENVIRONMENTAL_SENSORS 0 // to use environmental sensors set to 1 otherwise set to 0  //<<<======>>>
+
+
+#define ACQ   _I2S_CS42448  // selected acquisition interface  //<<<======>>>
 
 // For ADC SE pins can be changed
 #if ACQ == _ADC_0
@@ -64,6 +69,29 @@
   #define NSHIFT 12 // number of bits to shift data to the right before extracting 16 bits //<<<======>>>
 #endif
 
+//------------------------- special Hardware configuration ----------------------------------------------------
+#if ACQ == _I2S_TYMPAN
+  #define TYMPAN_REVISION         TYMPAN_REV_C         //TYMPAN_REV_C or TYMPAN_REV_D   //<<<======>>>
+  #define TYMPAN_INPUT_DEVICE     TYMPAN_INPUT_ON_BOARD_MIC // use the on-board microphones   //<<<======>>>
+                                  //TYMPAN_INPUT_JACK_AS_MIC // use the microphone jack - defaults to mic bias 2.5V
+                                  //TYMPAN_INPUT_JACK_AS_LINEIN // use the microphone jack - defaults to mic bias OFF
+  #define input_gain_dB   10.5f   //<<<======>>>
+  
+  #define AIC_FS F_SAMP
+  #define AIC_BITS        32  // could also be 16
+  #if AIC_BITS==32
+    #define NSHIFT 12 // number of bits to shift data to the right before extracting 16 bits //<<<======>>>
+  #endif
+#endif
+
+#if  ACQ == _I2S_CS42448
+  #define NUM_BITS        32  // could also be 16
+  #if NUM_BITS==32
+    #define NSHIFT 12 // number of bits to shift data to the right before extracting 16 bits //<<<======>>>
+  #endif
+#endif
+
+
 #define MDEL -1     // maximal delay in buffer counts (128/fs each; for fs= 48 kHz: 128/48 = 2.5 ms each) //<<<======>>>
                     // MDEL == -1 connects ACQ interface directly to mux and queue
 
@@ -71,6 +99,9 @@
 
 /****************************************************************************************/
 // some structures to be used for controlling acquisition
+
+#define MENU_PIN 3  // ground menu_pin to enter menu during startup
+
 // -----------------------scheduled acquisition------------------------------------------
 typedef struct
 { uint32_t on;  // acquisition on time in seconds
@@ -123,28 +154,6 @@ SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL}; //
 // is used in audio_hibernate.h
 //#define SLEEP_SHORT             // comment when sleep duration is not limited   //<<<======>>>
 #define ShortSleepDuration 60     // value in seconds (max sleep duration)    //<<<======>>>
-
-//------------------------- Additional sensors ---------------------------------------------------------------
-#define USE_ENVIRONMENTAL_SENSORS 0 // to use environmental sensors set to 1 otherwise set to 0  //<<<======>>>
-
-//------------------------- special Hardware configuration ----------------------------------------------------
-#if ACQ == _I2S_TYMPAN
-  #undef USE_ENVIRONMENTAL_SENSORS
-  #define USE_ENVIRONMENTAL_SENSORS 0 // for tympan switch off environmental sensors
-  #define TYMPAN_REVISION         TYMPAN_REV_C         //TYMPAN_REV_C or TYMPAN_REV_D   //<<<======>>>
-  #define TYMPAN_INPUT_DEVICE     TYMPAN_INPUT_ON_BOARD_MIC // use the on-board microphones   //<<<======>>>
-                                  //TYMPAN_INPUT_JACK_AS_MIC // use the microphone jack - defaults to mic bias 2.5V
-                                  //TYMPAN_INPUT_JACK_AS_LINEIN // use the microphone jack - defaults to mic bias OFF
-  #define input_gain_dB   10.5f   //<<<======>>>
-  
-  #undef F_SAMP
-  #define F_SAMP          44100L // desired sampling frequency  //<<<======>>>
-  #define AIC_FS F_SAMP
-  #define AIC_BITS        32  // could also be 16
-  #if AIC_BITS==32
-    #define NSHIFT 12 // number of bits to shift data to the right before extracting 16 bits //<<<======>>>
-  #endif
-#endif
 
 //------------------------- configuration of trigger module ----------------------------------------------------
 #define STEREO_TRIGGER 0

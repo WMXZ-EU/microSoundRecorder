@@ -53,3 +53,8 @@ Temporary Items
 DataSheets
 Misc_info
 Sound_Examples
+bin/*.*
+bin/*/*.*
+bin/*/*/*.*
+bin/*/*/*/*.*
+bin/*/*/*/*/*.*

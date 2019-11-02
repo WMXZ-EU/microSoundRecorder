@@ -33,14 +33,14 @@
 
 
 
-class AudioControlTLV320AIC3206: public TeensyAudioControl
+class mAudioControlTLV320AIC3206: public TeensyAudioControl
 {
 public:
 	//GUI: inputs:0, outputs:0  //this line used for automatic generation of GUI node
-	AudioControlTLV320AIC3206(void) { debugToSerial = false; };
-	AudioControlTLV320AIC3206(bool _debugToSerial) { debugToSerial = _debugToSerial; };
-	AudioControlTLV320AIC3206(int _resetPin) { debugToSerial = false; resetPinAIC = _resetPin; }
-	AudioControlTLV320AIC3206(int _resetPin, bool _debugToSerial) {  resetPinAIC = _resetPin; debugToSerial = _debugToSerial; };
+	mAudioControlTLV320AIC3206(void) { debugToSerial = false; };
+	mAudioControlTLV320AIC3206(bool _debugToSerial) { debugToSerial = _debugToSerial; };
+	mAudioControlTLV320AIC3206(int _resetPin) { debugToSerial = false; resetPinAIC = _resetPin; }
+	mAudioControlTLV320AIC3206(int _resetPin, bool _debugToSerial) {  resetPinAIC = _resetPin; debugToSerial = _debugToSerial; };
 	bool enable(void);
 	bool disable(void);
 	bool outputSelect(int n);

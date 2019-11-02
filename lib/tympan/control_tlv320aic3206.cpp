@@ -149,7 +149,7 @@
 #define TYMPAN_ADC_MUTE_REG 0x0052 //  page 0, register 82
 #define TYMPAN_ADC_UNMUTE 0x00
 
-bool AudioControlTLV320AIC3206::enable(void)
+bool mAudioControlTLV320AIC3206::enable(void)
 {
   delay(100);
 
@@ -178,16 +178,16 @@ bool AudioControlTLV320AIC3206::enable(void)
 
 }
 
-bool AudioControlTLV320AIC3206::disable(void) {
+bool mAudioControlTLV320AIC3206::disable(void) {
   return true;
 }
 
 //dummy function to keep compatible with Teensy Audio Library
-bool AudioControlTLV320AIC3206::inputLevel(float volume) {
+bool mAudioControlTLV320AIC3206::inputLevel(float volume) {
   return false;
 }
 
-bool AudioControlTLV320AIC3206::inputSelect(int n) {
+bool mAudioControlTLV320AIC3206::inputSelect(int n) {
   if (n == TYMPAN_INPUT_LINE_IN) {
     // USE LINE IN SOLDER PADS
     aic_writeAddress(TYMPAN_MICPGA_LEFT_POSITIVE_REG, TYMPAN_MIC_ROUTING_POSITIVE_IN1 & TYMPAN_MIC_ROUTING_RESISTANCE_DEFAULT);
@@ -239,7 +239,7 @@ bool AudioControlTLV320AIC3206::inputSelect(int n) {
   return false;
 }
 
-bool AudioControlTLV320AIC3206::setMicBias(int n) {
+bool mAudioControlTLV320AIC3206::setMicBias(int n) {
   if (n == TYMPAN_MIC_BIAS_1_25) {
     aic_writeAddress(TYMPAN_MIC_BIAS_REG, TYMPAN_MIC_BIAS_POWER_ON | TYMPAN_MIC_BIAS_OUTPUT_VOLTAGE_1_25); // power up mic bias
     return true;
@@ -261,7 +261,7 @@ bool AudioControlTLV320AIC3206::setMicBias(int n) {
   return false;
 }
 
-void AudioControlTLV320AIC3206::aic_reset() {
+void mAudioControlTLV320AIC3206::aic_reset() {
   if (debugToSerial) Serial.println("INFO: Reseting AIC");
   aic_writePage(0x00, 0x01, 0x01);
   // aic_writeAddress(0x0001, 0x01);
@@ -276,7 +276,7 @@ void AudioControlTLV320AIC3206::aic_reset() {
 // aic_writeAddress(TYMPAN_RIGHT_MICPGA_POSITIVE_REG, TYMPAN_MIC_ROUTING_POSITIVE_IN3 & TYMPAN_MIC_ROUTING_RESISTANCE_DEFAULT);
 // aic_writeAddress(TYMPAN_RIGHT_MICPGA_NEGATIVE_REG, TYMPAN_MIC_ROUTING_NEGATIVE_CM_TO_CM1L & TYMPAN_MIC_ROUTING_RESISTANCE_DEFAULT);
 
-void AudioControlTLV320AIC3206::aic_initADC() {
+void mAudioControlTLV320AIC3206::aic_initADC() {
   if (debugToSerial) Serial.println("INFO: Initializing AIC ADC");
   aic_writeAddress(TYMPAN_ADC_PROCESSING_BLOCK_REG, PRB_R);  // processing blocks - ADC
   aic_writePage(1, 61, 0); // 0x3D // Select ADC PTM_R4 Power Tune?  (this line is from datasheet (application guide, Section 4.2)
@@ -296,7 +296,7 @@ void AudioControlTLV320AIC3206::aic_initADC() {
 }
 
 // set MICPGA volume, 0-47.5dB in 0.5dB setps
-bool AudioControlTLV320AIC3206::setInputGain_dB(float volume) {
+bool mAudioControlTLV320AIC3206::setInputGain_dB(float volume) {
   if (volume < 0.0) {
     volume = 0.0; // 0.0 dB
     Serial.println("controlTLV320AIC3206: WARNING: Attempting to set MIC volume outside range");
@@ -329,7 +329,7 @@ bool AudioControlTLV320AIC3206::setInputGain_dB(float volume) {
 
 //volume control, similar to Teensy Audio Board
 // value between 0.0 and 1.0.  Set to span -58 to +15 dB
-bool AudioControlTLV320AIC3206::volume(float volume) {
+bool mAudioControlTLV320AIC3206::volume(float volume) {
 	volume = max(0.0, min(1.0, volume));
 	float vol_dB = -58.f + (15.0 - (-58.0f)) * volume;
 	volume_dB(vol_dB);
@@ -337,7 +337,7 @@ bool AudioControlTLV320AIC3206::volume(float volume) {
 }
 
 // -63.6 to +24 dB in 0.5dB steps.  uses signed 8-bit
-bool AudioControlTLV320AIC3206::volume_dB(float volume) {
+bool mAudioControlTLV320AIC3206::volume_dB(float volume) {
 
   // Constrain to limits
   if (volume > 24.0) {
@@ -364,12 +364,12 @@ bool AudioControlTLV320AIC3206::volume_dB(float volume) {
   return true;
 }
 
-void AudioControlTLV320AIC3206::aic_initDAC() {
+void mAudioControlTLV320AIC3206::aic_initDAC() {
 	if (debugToSerial) Serial.println("controlTLV320AIC3206: Initializing AIC DAC");
 	outputSelect(TYMPAN_OUTPUT_HEADPHONE_JACK_OUT); //default
 }
 
-bool AudioControlTLV320AIC3206::outputSelect(int n) {
+bool mAudioControlTLV320AIC3206::outputSelect(int n) {
 	// PLAYBACK SETUP: 
 	//	HPL/HPR are headphone output left and right
 	//	LOL/LOR are line output left and right
@@ -436,7 +436,7 @@ bool AudioControlTLV320AIC3206::outputSelect(int n) {
 }
 
 
-void AudioControlTLV320AIC3206::aic_init() {
+void mAudioControlTLV320AIC3206::aic_init() {
   if (debugToSerial) Serial.println("controlTLV320AIC3206: Initializing AIC");
   
   // PLL
@@ -474,7 +474,7 @@ void AudioControlTLV320AIC3206::aic_init() {
   // aic_writePage(0, 28, 0); // 0x1C
 }
 
-unsigned int AudioControlTLV320AIC3206::aic_readPage(uint8_t page, uint8_t reg)
+unsigned int mAudioControlTLV320AIC3206::aic_readPage(uint8_t page, uint8_t reg)
 {
   unsigned int val;
   if (aic_goToPage(page)) {
@@ -517,14 +517,14 @@ unsigned int AudioControlTLV320AIC3206::aic_readPage(uint8_t page, uint8_t reg)
   return val;
 }
 
-bool AudioControlTLV320AIC3206::aic_writeAddress(uint16_t address, uint8_t val) {
+bool mAudioControlTLV320AIC3206::aic_writeAddress(uint16_t address, uint8_t val) {
   uint8_t reg = (uint8_t) (address & 0xFF);
   uint8_t page = (uint8_t) ((address >> 8) & 0xFF);
 
   return aic_writePage(page, reg, val);
 }
 
-bool AudioControlTLV320AIC3206::aic_writePage(uint8_t page, uint8_t reg, uint8_t val) {
+bool mAudioControlTLV320AIC3206::aic_writePage(uint8_t page, uint8_t reg, uint8_t val) {
   if (debugToSerial) {
 	Serial.print("controlTLV320AIC3206: Write Page.  Page: ");Serial.print(page);
 	Serial.print(" Reg: ");Serial.print(reg);
@@ -544,7 +544,7 @@ bool AudioControlTLV320AIC3206::aic_writePage(uint8_t page, uint8_t reg, uint8_t
   return false;
 }
 
-bool AudioControlTLV320AIC3206::aic_goToPage(byte page) {
+bool mAudioControlTLV320AIC3206::aic_goToPage(byte page) {
   Wire.beginTransmission(AIC3206_I2C_ADDR);
   Wire.write(0x00); delay(10);// page register  //was delay(10) from BPF
   Wire.write(page); delay(10);// go to page   //was delay(10) from BPF
@@ -564,7 +564,7 @@ bool AudioControlTLV320AIC3206::aic_goToPage(byte page) {
   return true;
 }
 
-bool AudioControlTLV320AIC3206::updateInputBasedOnMicDetect(int setting) {
+bool mAudioControlTLV320AIC3206::updateInputBasedOnMicDetect(int setting) {
 	//read current mic detect setting
 	int curMicDetVal = readMicDetect();
 	if (curMicDetVal != prevMicDetVal) {
@@ -579,7 +579,7 @@ bool AudioControlTLV320AIC3206::updateInputBasedOnMicDetect(int setting) {
 	prevMicDetVal = curMicDetVal;
 	return (bool)curMicDetVal;
 }
-bool AudioControlTLV320AIC3206::enableMicDetect(bool state) {
+bool mAudioControlTLV320AIC3206::enableMicDetect(bool state) {
 	//page 0, register 67
 	byte curVal = aic_readPage(0,67);
 	byte newVal = curVal;
@@ -595,7 +595,7 @@ bool AudioControlTLV320AIC3206::enableMicDetect(bool state) {
 	}
 	return state;
 }
-int AudioControlTLV320AIC3206::readMicDetect(void) {
+int mAudioControlTLV320AIC3206::readMicDetect(void) {
 	//page 0, register 46, bit D4 (for D7-D0)
 	byte curVal = aic_readPage(0,46);
 	curVal = (curVal & 0b00010000);
