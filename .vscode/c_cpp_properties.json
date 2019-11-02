@@ -1,0 +1,25 @@
+{
+  "configurations": [
+    {
+      "name": "VisualTeensy",
+      "includePath": [
+        "src/**",
+        "lib/**",
+        "C:/Users/Walter/Documents/arduino-1.8.8/hardware/teensy/avr/cores/teensy3/**",
+        "C:/Users/Walter/Documents/arduino-1.8.8/hardware/teensy/avr/libraries/**",
+        "C:/Users/Walter/Documents/Arduino/libraries/**"
+      ],
+      "defines": [
+        "__MK66FX1M0__",
+        "TEENSYDUINO=147",
+        "F_CPU=96000000",
+        "USB_SERIAL",
+        "LAYOUT_US_ENGLISH",
+        "ARDUINO"
+      ],
+      "compilerPath": "C:/Users/Walter/Documents/arduino-1.8.7/hardware/tools/arm/bin/arm-none-eabi-gcc.exe",
+      "intelliSenseMode": "gcc-x64"
+    }
+  ],
+  "version": 4
+}

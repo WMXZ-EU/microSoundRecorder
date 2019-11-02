@@ -47,14 +47,10 @@ Temporary Items
 .apdisk
 
 # VS files
-.vs*
+.vsx*
 
 #local wiki support files
 DataSheets
 Misc_info
 Sound_Examples
-bin/*.*
-bin/*/*.*
-bin/*/*/*.*
-bin/*/*/*/*.*
-bin/*/*/*/*/*.*
+bin*
