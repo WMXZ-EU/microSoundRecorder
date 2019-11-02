@@ -25,7 +25,7 @@ export SHELL
 TARGET_NAME      := microSoundRecorder
 BOARD_ID         := TEENSY36
 
-ROOT := C:\Users\Walter\Documents\arduino-1.8.8\hardware
+ROOT  := C:\Users\Walter\Documents\arduino-1.8.8\hardware
 LOCAL := C:\Users\Walter\Documents\Arduino
 
 LIBS_LOCAL_BASE := $(LOCAL)\libraries
@@ -34,6 +34,7 @@ LIBS_LOCAL      := SdFs
 LIBS_SHARED_BASE  := $(ROOT)\teensy\avr\libraries
 LIBS_SHARED       := SPI Wire Audio SD SerialFlash
 
+#******************************************************************************
 CORE_BASE        := $(ROOT)\teensy\avr\cores\teensy3
 GCC_BASE         := $(ROOT)\tools\arm
 UPL_PJRC_B       := $(ROOT)\tools
@@ -65,7 +66,7 @@ FLAGS_LD    := -Wl,--gc-sections,--relax
 FLAGS_LD    += -Wl,--defsym=__rtc_localtime=$(shell powershell [int](Get-Date -UFormat +%s))
 FLAGS_LD    += -Wl,-Map=$(TARGET_MAP)
 LIBS        := -larm_cortexM4lf_math -lm
-LD_SCRIPT   := mk66fx1m0.ld
+LD_SCRIPT   := $(MCU).ld
 
 DEFINES     := -D__MK66FX1M0__ -DF_CPU=96000000 -DUSB_SERIAL -DLAYOUT_US_ENGLISH
 DEFINES     += -DTEENSYDUINO=147 -DARDUINO=10808

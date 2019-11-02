@@ -12,6 +12,7 @@ More information can be found in the build-in Wiki
 - I2S, I2S_32, I2S_QUAD, I2S_32_MONO 
 - I2S_TYMPAN
 - I2S_TDM
+- I2S_CS42448
 
 The I2S_32 mode allows acquisition of two 24 bit MEMS microphones
 
@@ -20,6 +21,8 @@ The I2S_32_MONO mode allows acquisition of one 24 bit MEMS microphone, reducing 
 The I2S_TYMPAN mode allows the high quality TYMPAN audio board https://tympan.org/ to be used as audio recorder
 
 The I2S_TDM mode allows multiple digital(e.g. ICS-52000 ) microphones be used in TDM mode
+
+The I2S_CS42448 mode allows acquisition using the CS42448 audio board
 
 ## implements
 - variable sampling frequency
