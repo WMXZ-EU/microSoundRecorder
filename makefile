@@ -136,7 +136,7 @@ LIB_DIRS_SHARED  += $(foreach d, $(LIBS_SHARED), $(LIBS_SHARED_BASE)/$d/src/ $(d
 LIB_DIRS_LOCAL   := $(foreach d, $(LIBS_LOCAL), $(LIBS_LOCAL_BASE)/$d/ $(LIBS_LOCAL_BASE)/$d/utility/ )    # base and /utility  
 LIB_DIRS_LOCAL   += $(foreach d, $(LIBS_LOCAL), $(LIBS_LOCAL_BASE)/$d/src/ $(dir $(call rwildcard,$(LIBS_LOCAL_BASE)/$d/src/,*/.)))       # src and all subdirs of base
 
-$(info $(LIB_DIRS_SRC))
+#$(info $(LIB_DIRS_SRC))
 
 LIB_CPP_SHARED  := $(foreach d, $(LIB_DIRS_SHARED),$(call wildcard,$d*.cpp))
 LIB_C_SHARED    := $(foreach d, $(LIB_DIRS_SHARED),$(call wildcard,$d*.c))
