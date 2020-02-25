@@ -86,12 +86,14 @@ c_uSD uSD;
  *  Logging interface support / implementation functions 
  */
 //_______________________________ For File Time settings _______________________
-#include <time.h>
-#define EPOCH_YEAR 1970 //T3 RTC
-#define LEAP_YEAR(Y) (((EPOCH_YEAR+Y)>0) && !((EPOCH_YEAR+Y)%4) && ( ((EPOCH_YEAR+Y)%100) || !((EPOCH_YEAR+Y)%400) ) )
+
+#define LEAP_YEAR(Y)  !(Y%4) && ( (Y%100) || !(Y%400) )
 static  const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31}; 
 
-/*  int  tm_sec;
+#include <time.h>
+/*
+struct tm {
+  int tm_sec;
   int tm_min;
   int tm_hour;
   int tm_mday;
@@ -100,6 +102,7 @@ static  const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31};
   int tm_wday;
   int tm_yday;
   int tm_isdst;
+};
 */
 
 struct tm seconds2tm(uint32_t tt)
@@ -107,14 +110,12 @@ struct tm seconds2tm(uint32_t tt)
   tx.tm_sec   = tt % 60;    tt /= 60; // now it is minutes
   tx.tm_min   = tt % 60;    tt /= 60; // now it is hours
   tx.tm_hour  = tt % 24;    tt /= 24; // now it is days
-  tx.tm_wday  = ((tt + 4) % 7) + 1;   // Sunday is day 1 (tbv)
 
   // tt is now days since EPOCH_Year (1970)
-  uint32_t year = 0;  
+  uint32_t year = 1970;  
   uint32_t days = 0;
   while((unsigned)(days += (LEAP_YEAR(year) ? 366 : 365)) <= tt) year++;
-
-  tx.tm_year = 1970+year; 
+  tx.tm_year = year; 
 
   // correct for last (actual) year
   days -= (LEAP_YEAR(year) ? 366 : 365);
@@ -133,24 +134,30 @@ struct tm seconds2tm(uint32_t tt)
   return tx;
 }
 
+// adapted from from Time.cpp (https://github.com/PaulStoffregen/Time/blob/master/Time.cpp)
+// works now !!! DD4WH, 20/02/2020 -> leap year ;-)
+// mods by WMXZ
 uint32_t tm2seconds (struct tm *tx) 
 {
-  uint32_t tt;
-  tt=tx->tm_sec+tx->tm_min*60+tx->tm_hour*3600;  
+  uint32_t seconds;
 
-  // count days size epoch until previous midnight
-  uint32_t days=tx->tm_mday-1;
-
-  uint32_t mm=0;
-  //uint32_t monthLength=0;
-  for (mm=0; mm<(uint32_t)(tx->tm_mon-1); mm++) days+=monthDays[mm]; 
-  if(tx->tm_mon>2 && LEAP_YEAR(tx->tm_year-1970)) days++;
-
-  uint32_t years=0;
-  while(years++ < (uint32_t)(tx->tm_year-1970)) days += (LEAP_YEAR(years) ? 366 : 365);
-  //  
-  tt+=(days*24*3600);
-  return tt;
+  // seconds from 1970 till 1 jan 00:00:00 of the given year
+  seconds= (tx->tm_year - 1970) * (86400 * 365);
+  for (uint32_t ii = 1970; ii < tx->tm_year; ii++) 
+  {
+    if (LEAP_YEAR(ii)) seconds += 86400;   // add extra days for leap years
+  }
+  // add days for this year, months start from 1
+  for (uint32_t ii = 1; ii < tx->tm_mon; ii++) 
+  {  uint32_t days=monthDays[ii-1];
+     if ( (ii == 2) && LEAP_YEAR(tx->tm_year)) days++;
+     seconds += 86400*days;
+  }
+  seconds+= (tx->tm_mday-1) * 86400;
+  seconds+= tx->tm_hour * 3600;
+  seconds+= tx->tm_min * 60;
+  seconds+= tx->tm_sec;
+  return seconds;
 }
 
 // Call back for file timestamps (used by FS).  Only called for file create and sync().
@@ -170,7 +177,7 @@ char *makeFilename(char * prefix)
 
   struct tm tx = seconds2tm(RTC_TSR);
   sprintf(filename, "%s_%04d_%02d_%02d_%02d_%02d_%02d%s", prefix, 
-                    tx.tm_year, tx.tm_mon, tx.tm_mday, tx.tm_hour, tx.tm_min, tx.tm_sec,postfix);
+                    tx.tm_year, tx.tm_mon, tx.tm_mday, tx.tm_hour, tx.tm_min, tx.tm_sec, postfix);
 #if DO_DEBUG>0
   Serial.println(filename);
 #endif
