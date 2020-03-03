@@ -123,7 +123,7 @@ void ADC_modification(uint32_t fsamp, uint16_t diff)
   PDB0_SC = PDB_CONFIG | PDB_SC_LDOK;
 }
 
-// ********************************************** following is to change I2S samling rates ********************
+// ********************************************** following is to change I2S sampling rates ********************
 // attempt to generate dividers programmatically
 // always better to check
 void I2S_dividers(uint32_t *iscl, uint32_t fsamp, uint32_t nbits)
@@ -131,7 +131,8 @@ void I2S_dividers(uint32_t *iscl, uint32_t fsamp, uint32_t nbits)
     int64_t i1 = 1;
     int64_t i2 = 1;
     int64_t i3 = iscl[2]+1;
-    float A=F_CPU/2.0f/i3/((float)nbits*fsamp);
+//    float A=F_CPU/2.0f/i3/((float)nbits*fsamp);
+    float A=F_PLL/2.0f/i3/((float)nbits*fsamp);
     float mn=1.0; 
     for(int ii=1;ii<=256;ii++) 
     { float xx;

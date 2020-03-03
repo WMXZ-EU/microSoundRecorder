@@ -229,7 +229,20 @@ char * wavHeader(uint32_t fileSize)
 //____________________________ FS Interface implementation______________________
 void c_uSD::init()
 {
-  if (!sd.begin(SD_CONFIG)) sd.errorHalt("sd.begin failed");
+  if (!sd.begin(SD_CONFIG))
+  {
+//    sd.errorHalt("sd.begin failed");
+    while(1)
+    {
+      // blink code suggests insertion of an SD card
+            pinMode(13,OUTPUT);
+            digitalWriteFast(13,HIGH);
+            delay(200);
+            digitalWriteFast(13,LOW);
+            delay(200);
+    }
+  }
+
   // Set Time callback
   FsDateTime::callback = dateTime;
   //
