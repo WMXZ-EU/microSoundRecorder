@@ -30,6 +30,7 @@
  
 #include "kinetis.h"
 #include "core_pins.h"
+#include "TimeLib.h"
 
 /******************* Seting Alarm **************************/
 #define RTC_IER_TAIE_MASK       0x4u
@@ -163,9 +164,8 @@ int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
 {	static uint32_t t_start = 0;  // start of actual file
   static uint16_t recording = 0;  // acquisition has started
 
-  uint32_t tt=RTC_TSR;
-  struct tm tx=seconds2tm(tt);
-  uint16_t to = tx.tm_hour;
+  uint32_t tt = now();
+  uint16_t to = hour();
   
   // check if we should sleep longer
   // sleep time between T2 and T3 and T4 and T1 (values are in hours)

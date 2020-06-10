@@ -6,14 +6,13 @@
  
 	License: MIT License.  Use at your own risk.
  */
-
+#if 0 // activate if using this file
 #include "control_tlv320aic3206.h"
 #include <Wire.h>
 
 //********************************  Constants  *******************************//
 
 #define AIC3206_I2C_ADDR                                             0x18
-
 
 #ifndef AIC_FS
 #  define AIC_FS                                                     44100UL
@@ -589,3 +588,5 @@ int AudioControlTLV320AIC3206::readMicDetect(void) {
 	curVal = (curVal != 0);
 	return curVal;
 }
+
+#endif

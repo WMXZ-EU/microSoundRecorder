@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "usb_desc.h": "c",
+        "usb_mtp.h": "c",
+        "core_pins.h": "c",
+        "usb_dev.h": "c",
+        "usb_mem.h": "c",
+        "printf.h": "c",
+        "initializer_list": "cpp",
+        "utility": "cpp"
+    }
+}

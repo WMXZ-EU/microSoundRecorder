@@ -174,9 +174,9 @@
   #include "input_i2s_quad.h"
   AudioInputI2SQuad     acq;
   
-  #define MQ (M_QUEU/NCH)
+  #define mq (M_QUEU/NCH)
   #include "m_queue.h"
-  mRecordQueue<MQ> *queue = new mRecordQueue<MQ> [NCH];
+  mRecordQueue<mq> *queue = new mRecordQueue<mq> [NCH];
 
   AudioConnection     patchCord1(acq,0, queue[0],0);
   AudioConnection     patchCord2(acq,1, queue[1],0);
@@ -320,7 +320,7 @@ extern "C" void setup() {
     I2S_modification(F_SAMP,32,2);
   
   #elif (ACQ == _I2S_QUAD)
-    I2S_modification(F_SAMP,16,2); // I2S_Quad not modified for 32 bit
+    I2S_modification(F_SAMP,16,4); // I2S_Quad not modified for 32 bit (therefore 16 bit)
   
   #elif((ACQ == _I2S_32) || (ACQ == _I2S_32_MONO))
     I2S_modification(F_SAMP,32,2);
@@ -528,17 +528,19 @@ extern "C" void loop() {
   {  // queue is empty
   // are we told to close or running out of time?
     // if delay is enabled must wait for delay to pass by
+    int must_hibernate=0;
     if(
         #if MDEL >=0
           ((mustClose>0) && (process1.getSigCount()< -MDEL)) ||
         #endif
-          ((mustClose==0) && (checkDutyCycle(&acqParameters, state)<0)))
+          ((mustClose==0) && ((must_hibernate=checkDutyCycle(&acqParameters, state))<0)))
     { 
       // write remaining data to disk and close file
       if(state>=0)
       { uint32_t nbuf = (uint32_t)(outptr-diskBuffer);
         state=uSD.write(diskBuffer,nbuf); // this is blocking
         state=uSD.close();
+        if(must_hibernate) state=-1;
         uSD.storeConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
       }
       outptr = diskBuffer;

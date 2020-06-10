@@ -47,52 +47,28 @@ typedef struct
 */
 
 
-#include <time.h>
-static uint32_t getRTC(void) {return RTC_TSR;}
-static void setRTC(uint32_t tt)
-{
-  RTC_SR = 0;
-  RTC_TPR = 0;
-  RTC_TSR = tt;
-  RTC_SR = RTC_SR_TCE;
-}
+#include <TimeLib.h>
 
 static char * getDate(char *text)
 {
-    uint32_t tt=getRTC();
-    struct tm tx =seconds2tm(tt);
-    sprintf(text,"%04d/%02d/%02d",tx.tm_year, tx.tm_mon, tx.tm_mday);
+    sprintf(text,"%04d/%02d/%02d",year(), month(), day());
     return text;  
 }
 
 static char * getTime(char *text)
 {
-    uint32_t tt=getRTC();
-    struct tm tx =seconds2tm(tt);
-    sprintf(text,"%02d:%02d:%02d",tx.tm_hour, tx.tm_min, tx.tm_sec);
+    sprintf(text,"%02d:%02d:%02d",hour(),minute(),second());
     return text;
 }
 
 static void setDate(uint16_t year, uint16_t month, uint16_t day)
 {
-    uint32_t tt=getRTC();
-    struct tm tx=seconds2tm(tt);
-    tx.tm_year=year;
-    tx.tm_mon=month;
-    tx.tm_mday=day;
-    tt=tm2seconds(&tx);
-    setRTC(tt);
+    setTime(hour(),minute(),second(),day, month, year);
 }
 
 static void setTime(uint16_t hour, uint16_t minutes, uint16_t seconds)
 {
-    uint32_t tt=getRTC();
-    struct tm tx=seconds2tm(tt);
-    tx.tm_hour=hour;
-    tx.tm_min=minutes;
-    tx.tm_sec=seconds;
-    tt=tm2seconds(&tx);
-    setRTC(tt);
+    setTime(hour,minutes,seconds,day(),month(),year());
 }
 
 /*

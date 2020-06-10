@@ -28,7 +28,7 @@
 // this implementation used SdFs from Bill Greiman
 // which needs to be installed as local library 
 //
-#include "SdFs.h"
+#include "SdFat-beta.h"
 
 #ifdef GEN_WAV_FILE
   char postfix[5]=".wav";
@@ -87,97 +87,26 @@ c_uSD uSD;
  */
 //_______________________________ For File Time settings _______________________
 
-#define LEAP_YEAR(Y)  !(Y%4) && ( (Y%100) || !(Y%400) )
-static  const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31}; 
-
-#include <time.h>
-/*
-struct tm {
-  int tm_sec;
-  int tm_min;
-  int tm_hour;
-  int tm_mday;
-  int tm_mon;
-  int tm_year;
-  int tm_wday;
-  int tm_yday;
-  int tm_isdst;
-};
-*/
-
-struct tm seconds2tm(uint32_t tt)
-{ struct tm tx;
-  tx.tm_sec   = tt % 60;    tt /= 60; // now it is minutes
-  tx.tm_min   = tt % 60;    tt /= 60; // now it is hours
-  tx.tm_hour  = tt % 24;    tt /= 24; // now it is days
-
-  // tt is now days since EPOCH_Year (1970)
-  uint32_t year = 1970;  
-  uint32_t days = 0;
-  while((unsigned)(days += (LEAP_YEAR(year) ? 366 : 365)) <= tt) year++;
-  tx.tm_year = year; 
-
-  // correct for last (actual) year
-  days -= (LEAP_YEAR(year) ? 366 : 365);
-  tt  -= days; // now tt is days in this year, starting at 0
-  
-  uint32_t mm=0;
-  uint32_t monthLength=0;
-  for (mm=0; mm<12; mm++) 
-  { monthLength = monthDays[mm];
-    if ((mm==1) & LEAP_YEAR(year)) monthLength++; 
-    if (tt<monthLength) break;
-    tt -= monthLength;
-  }
-  tx.tm_mon = mm + 1;   // jan is month 1  
-  tx.tm_mday = tt + 1;     // day of month
-  return tx;
-}
-
-// adapted from from Time.cpp (https://github.com/PaulStoffregen/Time/blob/master/Time.cpp)
-// works now !!! DD4WH, 20/02/2020 -> leap year ;-)
-// mods by WMXZ
-uint32_t tm2seconds (struct tm *tx) 
-{
-  uint32_t seconds;
-
-  // seconds from 1970 till 1 jan 00:00:00 of the given year
-  seconds= (tx->tm_year - 1970) * (86400 * 365);
-  for (uint32_t ii = 1970; ii < tx->tm_year; ii++) 
-  {
-    if (LEAP_YEAR(ii)) seconds += 86400;   // add extra days for leap years
-  }
-  // add days for this year, months start from 1
-  for (uint32_t ii = 1; ii < tx->tm_mon; ii++) 
-  {  uint32_t days=monthDays[ii-1];
-     if ( (ii == 2) && LEAP_YEAR(tx->tm_year)) days++;
-     seconds += 86400*days;
-  }
-  seconds+= (tx->tm_mday-1) * 86400;
-  seconds+= tx->tm_hour * 3600;
-  seconds+= tx->tm_min * 60;
-  seconds+= tx->tm_sec;
-  return seconds;
-}
+#include <TimeLib.h>
 
 // Call back for file timestamps (used by FS).  Only called for file create and sync().
-void dateTime(uint16_t* date, uint16_t* time) 
+  void dateTime(uint16_t* date, uint16_t* time, uint8_t* ms10) 
 {
-  struct tm tx=seconds2tm(RTC_TSR);
-    
   // Return date using FS_DATE macro to format fields.
-  *date = FS_DATE(tx.tm_year, tx.tm_mon, tx.tm_mday);
+  *date = FS_DATE(year(), month(), day());
 
   // Return time using FS_TIME macro to format fields.
-  *time = FS_TIME(tx.tm_hour, tx.tm_min, tx.tm_sec);
+  *time = FS_TIME(hour(), minute(), second());
+
+  // Return low time bits in units of 10 ms.
+  *ms10 = second() & 1 ? 100 : 0;
 }
 
 char *makeFilename(char * prefix)
 { static char filename[40];
 
-  struct tm tx = seconds2tm(RTC_TSR);
   sprintf(filename, "%s_%04d_%02d_%02d_%02d_%02d_%02d%s", prefix, 
-                    tx.tm_year, tx.tm_mon, tx.tm_mday, tx.tm_hour, tx.tm_min, tx.tm_sec, postfix);
+                    year(), month(), day(), hour(), minute(), second(), postfix);
 #if DO_DEBUG>0
   Serial.println(filename);
 #endif
@@ -188,8 +117,8 @@ char * headerUpdate(void)
 {
 	header[0] = 'W'; header[1] = 'M'; header[2] = 'X'; header[3] = 'Z';
 	
-	struct tm tx = seconds2tm(RTC_TSR);
-	sprintf(&header[5], "%04d_%02d_%02d_%02d_%02d_%02d", tx.tm_year, tx.tm_mon, tx.tm_mday, tx.tm_hour, tx.tm_min, tx.tm_sec);
+	sprintf(&header[5], "%04d_%02d_%02d_%02d_%02d_%02d", 
+                        year(), month(), day(), hour(), minute(), second());
 	//
 	// add more info to header
 	//
@@ -361,9 +290,8 @@ void c_uSD::writeTemperature(float temperature, float pressure, float humidity, 
   sprintf(envfilename, "Envi_%s.txt", acqParameters.name);
   file.open(envfilename, O_CREAT|O_WRITE|O_APPEND);
 
-    struct tm tx = seconds2tm(RTC_TSR);
-    sprintf(text, "%04d_%02d_%02d,", tx.tm_year, tx.tm_mon, tx.tm_mday);  file.write((char*)text, strlen(text));
-    sprintf(text, "%02d_%02d_%02d,", tx.tm_hour, tx.tm_min, tx.tm_sec);   file.write((char*)text, strlen(text));
+    sprintf(text, "%04d_%02d_%02d,", year(), month(), day());  file.write((char*)text, strlen(text));
+    sprintf(text, "%02d_%02d_%02d,", hour(), minute(), second());   file.write((char*)text, strlen(text));
     sprintf(text, "%10.1f,", temperature);   file.write((char*)text, strlen(text));
     sprintf(text, "%10.1f,", pressure);      file.write((char*)text, strlen(text));
     sprintf(text, "%10.1f,", humidity);      file.write((char*)text, strlen(text));
