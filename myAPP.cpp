@@ -241,7 +241,7 @@ void ledOff(void)
 
 time_t getTeensy3Time(){  return Teensy3Clock.get();}
 //__________________________General Arduino Routines_____________________________________
-
+int started=0;
 extern "C" void setup() {
   // put your setup code here, to run once:
   int16_t nsec;
@@ -374,6 +374,7 @@ extern "C" void setup() {
   for(int ii=0; ii<NCH; ii++) queue[ii].begin();
   //
   Serial.println("End of Setup");
+  started=0;
 }
 
 volatile uint32_t maxValue=0, maxNoise=0; // possibly be updated outside
@@ -391,6 +392,7 @@ extern "C" void loop() {
 
   if(have_data)
   { // have data on queue
+    started=1; // flag that we have now data
     nsec=checkDutyCycle(&acqParameters, state);
     if(nsec<0) { uSD.setClosing();} // this will be last record in file
     if(nsec>0) 
@@ -529,23 +531,22 @@ extern "C" void loop() {
       uSD.storeConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
     }
   }
-  else
-  {  // queue is empty
-  // are we told to close or running out of time?
+  else if(started)
+  { // queue is empty that is we have no data
+    // are we told to close or running out of time?
     // if delay is enabled must wait for delay to pass by
-    int must_hibernate=0;
     if(
         #if MDEL >=0
           ((mustClose>0) && (process1.getSigCount()< -MDEL)) ||
         #endif
-          ((mustClose==0) && ((must_hibernate=checkDutyCycle(&acqParameters, state))<0)))
+          ((mustClose==0) && ((checkDutyCycle(&acqParameters, state)<0))))
     { 
+      Serial.println("QUEUE Empty");
       // write remaining data to disk and close file
       if(state>=0)
       { uint32_t nbuf = (uint32_t)(outptr-diskBuffer);
         state=uSD.write(diskBuffer,nbuf); // this is blocking
         state=uSD.close();
-        if(must_hibernate) state=-1;
         uSD.storeConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
       }
       outptr = diskBuffer;

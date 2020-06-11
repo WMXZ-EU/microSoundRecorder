@@ -174,7 +174,6 @@ int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
   uint16_t T2 = acqParameters->T2;
   uint16_t T3 = acqParameters->T3;
   uint16_t T4 = acqParameters->T4;
-  
   uint16_t doRecording=1;
   if (T4<T1) // e.g. 3-4, 23-1 (work over midnight)
     doRecording =   ((to>=T3) || (to<T4) || ((to>=T1) && (to<T2)));
