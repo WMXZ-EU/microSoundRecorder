@@ -41,7 +41,7 @@ ROOT0		:= C:\Users\zimme\Documents
 ARDUINO		:= $(ROOT0)\arduino-1.8.12\hardware
 
 LIBS_LOCAL_BASE := $(ROOT0)\Arduino\libraries
-LIBS_LOCAL      := SdFat-beta
+LIBS_LOCAL      := SdFat_V2
 
 LIBS_SHARED_BASE  := $(ARDUINO)\teensy\avr\libraries
 LIBS_SHARED       := SPI Time
@@ -178,7 +178,7 @@ generateDirs := $(foreach d, $(DIRECTORIES), $(shell if not exist "$d" mkdir "$d
 
 #$(info dirs: $(DIRECTORIES))
 
-$(info$(COL_RESET))
+$(info $(COL_RESET))
 
 #******************************************************************************
 # Rules:

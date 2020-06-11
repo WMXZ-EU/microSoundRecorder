@@ -235,10 +235,11 @@ void ledOff(void)
 }
 
 // following three lines are for adjusting RTC 
-extern unsigned long rtc_get(void);
-extern void *__rtc_localtime; // Arduino build process sets this
-extern void rtc_set(unsigned long t);
+//extern unsigned long rtc_get(void);
+//extern void *__rtc_localtime; // Arduino build process sets this
+//extern void rtc_set(unsigned long t);
 
+time_t getTeensy3Time(){  return Teensy3Clock.get();}
 //__________________________General Arduino Routines_____________________________________
 
 extern "C" void setup() {
@@ -247,6 +248,10 @@ extern "C" void setup() {
   pinMode(3,INPUT_PULLUP); // needed to enter menu if grounded
 
 #if DO_DEBUG>0
+
+  // set the Time library to use Teensy 3.0's RTC to keep time
+  setSyncProvider(getTeensy3Time);
+
    while(!Serial && !digitalRead(3));
 //  while(!Serial && (millis()<3000)); // use this for testing without menu
    Serial.println("microSoundRecorder");
@@ -591,4 +596,3 @@ extern "C" void loop() {
 
   asm("wfi"); // to save some power switch off idle cpu
 }
-

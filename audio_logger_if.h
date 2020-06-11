@@ -25,10 +25,12 @@
 #include "core_pins.h"
 
 //==================== local uSD interface ========================================
-// this implementation used SdFs from Bill Greiman
+// this implementation used SdFat-beta from Bill Greiman
 // which needs to be installed as local library 
+// rename in SdFat-beta/src the file SdFat.h to SdFat-beta.h
+// to avoid confict with stock SD library needed for Audio library
 //
-#include "SdFat-beta.h"
+#include "SdFat-beta.h" 
 
 #ifdef GEN_WAV_FILE
   char postfix[5]=".wav";

@@ -11,13 +11,12 @@
         "${ROOT0}/cores/teensy3/**",
         "${ROOT0}/libraries/SPI/**",
         "${ROOT0}/libraries/Time/**",
-        "${LOCAL_LIBRARIES}/SdFat-beta/**",
-        "${LOCAL_LIBRARIES}/MTP_t4/**"
+        "${LOCAL_LIBRARIES}/SdFat_V2/**"
       ],
       "forcedInclude": [],
       "defines": [
         "__MK66FX1M0__",
-        "TEENSYDUINO=149",
+        "TEENSYDUINO=152",
         "F_CPU=96000000",
         "USB_SERIAL",
         "LAYOUT_US_ENGLISH",
