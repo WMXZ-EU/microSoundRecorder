@@ -69,7 +69,7 @@ void setRTCTime(int hr,int min,int sec,int dy, int mnth, int yr){
   else
       yr += 30;  
   
-  tmElements_t tm;          // a cache of time elements
+  tmElements_t tm;
   tm.Year = yr;
   tm.Month = mnth;
   tm.Day = dy;
