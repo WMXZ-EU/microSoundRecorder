@@ -64,7 +64,10 @@ FLAGS_LSP   :=
 FLAGS_CPP   := -std=gnu++14 -fno-exceptions -fpermissive -fno-rtti -fno-threadsafe-statics -felide-constructors -Wno-error=narrowing
 FLAGS_C     := 
 FLAGS_S     := -x assembler-with-cpp
-FLAGS_LD    := -Wl,--gc-sections,--relax,--defsym=__rtc_localtime=$(shell powershell [int](Get-Date -UFormat +%s)[0]) -T$(CORE_BASE)/$(MCU).ld
+FLAGS_LD    := -Wl,--gc-sections,--relax
+FLAGS_LD    += -Wl,--defsym=__rtc_localtime=$(shell powershell [int](Get-Date -UFormat +%s))
+#FLAGS_LD    := -Wl,--gc-sections,--relax,--defsym=__rtc_localtime=$(shell powershell [int](Get-Date -UFormat +%s)[0])
+FLAGS_LD    +=-T$(CORE_BASE)/$(MCU).ld
 
 #LIBS        := -larm_cortexM7lfsp_math -lm -lstdc++
 LIBS		+= -lstdc++
@@ -104,6 +107,9 @@ CORE_LIB    := $(BIN)/core.a
 TARGET_HEX  := $(BIN)/$(TARGET_NAME).hex
 TARGET_ELF  := $(BIN)/$(TARGET_NAME).elf
 TARGET_LST  := $(BIN)/$(TARGET_NAME).lst
+TARGET_MAP	:= $(BIN)/$(TARGET_NAME).map
+
+FLAGS_LD    += -Wl,-Map=$(TARGET_MAP)
 
 #******************************************************************************
 # BINARIES

@@ -92,7 +92,7 @@ typedef struct
 //  acquire whole day (from midnight to noon and noot to midnight)
 //
 
-ACQ_Parameters_s acqParameters = { 30, 10, 60, 9, 10, 11, 12, 0, "TDM"}; //<<<======>>>
+ACQ_Parameters_s acqParameters = { 30, 10, 60, 0, 12, 12, 24, 0, "TDM"}; //<<<======>>>
 
 // the following global variable may be set from anywhere
 // if one wanted to close file immediately

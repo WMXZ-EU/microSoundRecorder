@@ -61,14 +61,35 @@ static char * getTime(char *text)
     return text;
 }
 
+void setRTCTime(int hr,int min,int sec,int dy, int mnth, int yr){
+ // year can be given as full four digit year or two digts (2010 or 10 for 2010);  
+ //it is converted to years since 1970
+  if( yr > 99)
+      yr = yr - 1970;
+  else
+      yr += 30;  
+  
+  tmElements_t tm;          // a cache of time elements
+  tm.Year = yr;
+  tm.Month = mnth;
+  tm.Day = dy;
+  tm.Hour = hr;
+  tm.Minute = min;
+  tm.Second = sec;
+
+  uint32_t tt = makeTime(tm);
+  Teensy3Clock.set(tt);
+  setTime(tt);
+}
+
 static void setDate(uint16_t year, uint16_t month, uint16_t day)
 {
-    setTime(hour(),minute(),second(),day, month, year);
+    setRTCTime(hour(),minute(),second(),day, month, year);
 }
 
 static void setTime(uint16_t hour, uint16_t minutes, uint16_t seconds)
 {
-    setTime(hour,minutes,seconds,day(),month(),year());
+    setRTCTime(hour,minutes,seconds,day(),month(),year());
 }
 
 /*
