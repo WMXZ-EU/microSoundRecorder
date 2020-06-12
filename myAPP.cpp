@@ -247,10 +247,10 @@ extern "C" void setup() {
   int16_t nsec;
   pinMode(3,INPUT_PULLUP); // needed to enter menu if grounded
 
-#if DO_DEBUG>0
-
   // set the Time library to use Teensy 3.0's RTC to keep time
   setSyncProvider(getTeensy3Time);
+
+#if DO_DEBUG>0
 
    while(!Serial && !digitalRead(3));
 //  while(!Serial && (millis()<3000)); // use this for testing without menu
