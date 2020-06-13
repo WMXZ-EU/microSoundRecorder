@@ -244,7 +244,7 @@ time_t getTeensy3Time(){  return Teensy3Clock.get();}
 int started=0;
 extern "C" void setup() {
   // put your setup code here, to run once:
-  int16_t nsec;
+  int32_t nsec;
   pinMode(3,INPUT_PULLUP); // needed to enter menu if grounded
 
   // set the Time library to use Teensy 3.0's RTC to keep time
@@ -382,7 +382,7 @@ int16_t tempBuffer[AUDIO_BLOCK_SAMPLES*NCH];
 
 extern "C" void loop() {
   // put your main code here, to run repeatedly:
-  int16_t nsec;
+  int32_t nsec;
   uint32_t to=0,t1,t2;
   static uint32_t t3,t4;
   static int16_t state=0; // 0: open new file, -1: last file
@@ -395,7 +395,7 @@ extern "C" void loop() {
     started=1; // flag that we have now data
     nsec=checkDutyCycle(&acqParameters, state);
     if(nsec<0) { uSD.setClosing();} // this will be last record in file
-    if(nsec>0 && state==0) 
+    if(nsec>0) 
     { 
       #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
         I2S_stopClock();

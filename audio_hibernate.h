@@ -160,7 +160,7 @@ void setWakeupCallandSleep(uint32_t nsec)
 #endif
 //
 // flag can be 0 file to be open // time to shutdown if required
-int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
+int32_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
 {	static uint32_t t_start = 0;  // start of actual file
   static uint16_t recording = 0;  // acquisition has started
 
@@ -226,6 +226,7 @@ int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
         }
       }
     }
+    /*
     else // initial check during setup
     {
           // check if this is simply wakeup
@@ -242,6 +243,7 @@ int16_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
             return nsec; 
           }
     }
+    */
   }
   else
   {
