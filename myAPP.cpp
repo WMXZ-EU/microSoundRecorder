@@ -395,7 +395,7 @@ extern "C" void loop() {
     started=1; // flag that we have now data
     nsec=checkDutyCycle(&acqParameters, state);
     if(nsec<0) { uSD.setClosing();} // this will be last record in file
-    if(nsec>0) 
+    if(nsec>0 && state==0) 
     { 
       #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
         I2S_stopClock();
