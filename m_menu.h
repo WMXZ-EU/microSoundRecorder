@@ -78,8 +78,8 @@ void setRTCTime(int hr,int min,int sec,int dy, int mnth, int yr){
   tm.Second = sec;
 
   uint32_t tt = makeTime(tm);
-  Teensy3Clock.set(tt);
-  setTime(tt);
+  Teensy3Clock.set(tt); // for RTC
+  setTime(tt); // local
 }
 
 static void setDate(uint16_t year, uint16_t month, uint16_t day)
