@@ -33,7 +33,9 @@ The I2S_TDM mode allows multiple digital(e.g. ICS-52000 ) microphones be used in
 - logging of environmental data (temperature, pressure, humidity, lux)
 
 ## requires following non-standard library (in private Arduino/libraries folder)
-- SdFs   (Bill Greiman's uSD filing system: https://github.com/greiman/SdFs) (to be modified)
+- SdFat-beta   (Bill Greiman's uSD filing system: https://github.com/greiman/SdFat-beta) 
+- The file SdFat.h in src directory must me renamed to SdFat_beta.h
+- The File SdFatConfig.h must be edited to reflect user needs
 
 
 ## optional non-standard libraries(in private Arduino/libraries folder) for environmental logging
