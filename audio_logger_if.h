@@ -257,10 +257,10 @@ void c_uSD::loadConfig(uint32_t * param1, int n1, int32_t *param2, int n2)
   if(!file.open("Config.txt",O_RDONLY)) return;
   //
   for(int ii=0; ii<n1; ii++)
-  { if(file.read((uint8_t*)text,12)); sscanf(text,"%d",(int *) &param1[ii]);
+  { if(file.read((uint8_t*)text,12)>0) sscanf(text,"%d",(int *) &param1[ii]);
   }
   for(int ii=0; ii<n2; ii++)
-  { if(file.read((uint8_t*)text,12)); sscanf(text,"%d", (int *)&param2[ii]);
+  { if(file.read((uint8_t*)text,12)>0) sscanf(text,"%d", (int *)&param2[ii]);
   }
   if(file.read((uint8_t *)text,6))
   { text[5]=0;
