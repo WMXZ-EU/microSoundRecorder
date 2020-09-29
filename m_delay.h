@@ -25,40 +25,40 @@
 
 #include "AudioStream.h"
 
-template <int NCH, int MQ>
+template <int nch, int mq>
 class mDelay : public AudioStream
 {
 public:
 
-  mDelay(int del) : AudioStream(NCH, inputQueueArray), head(MQ), numDelay(del){ reset(); }
+  mDelay(int del) : AudioStream(nch, inputQueueArray), head(mq), numDelay(del){ reset(); }
   void reset(void);
   void setDelay(int16_t ndel) {numDelay=ndel;}
   virtual void update(void);
   
 protected:  
-  audio_block_t *inputQueueArray[NCH];
+  audio_block_t *inputQueueArray[nch];
 
 private:
-  audio_block_t * volatile queue[NCH][MQ];
+  audio_block_t * volatile queue[nch][mq];
   volatile uint16_t head, numDelay;
 
 };
 
-template <int NCH, int MQ>
-void mDelay<NCH,MQ>::reset(void)
+template <int nch, int mq>
+void mDelay<nch,mq>::reset(void)
 {
-  for(int ii=0; ii<NCH; ii++) for (int jj=0; jj<MQ; jj++) queue[ii][jj]=NULL;
-  head=MQ;
+  for(int ii=0; ii<nch; ii++) for (int jj=0; jj<mq; jj++) queue[ii][jj]=NULL;
+  head=mq;
 }
 
-template <int NCH, int MQ>
-void mDelay<NCH,MQ>::update(void)
+template <int nch, int mq>
+void mDelay<nch,mq>::update(void)
 {
   audio_block_t *block;
 
-  if((numDelay<=0) || (numDelay >= MQ)) // bypass queue
+  if((numDelay<=0) || (numDelay >= mq)) // bypass queue
   {
-    for(int ii=0;ii<NCH;ii++)
+    for(int ii=0;ii<nch;ii++)
     {
       block = receiveReadOnly(ii);
       if(block)
@@ -71,8 +71,8 @@ void mDelay<NCH,MQ>::update(void)
   }
   //
   
-  uint16_t h = (head + 1) % MQ;
-  for(int ii=0;ii<NCH;ii++)
+  uint16_t h = (head + 1) % mq;
+  for(int ii=0;ii<nch;ii++)
   {
     if(queue[ii][h]) release(queue[ii][h]);
     block = receiveReadOnly(ii);
@@ -85,8 +85,8 @@ void mDelay<NCH,MQ>::update(void)
   }
   head = h;
 
-  uint16_t index = ((head  + MQ) - numDelay) % MQ;
-  for(int ii=0;ii<NCH;ii++)
+  uint16_t index = ((head  + mq) - numDelay) % mq;
+  for(int ii=0;ii<nch;ii++)
   {
     if(queue[ii][index])
     {

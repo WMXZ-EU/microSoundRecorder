@@ -46,7 +46,7 @@
 #define _I2S_TYMPAN     7 // I2S (16 bit tympan stereo audio audio) for use the tympan board
 #define _I2S_TDM        8 // I2S (8 channel TDM) // only first 5 channels are used (modify myAcq.h if less or more channels)
 
-#define ACQ   _I2S_QUAD  // selected acquisition interface  //<<<======>>>
+#define ACQ   _I2S_32 // selected acquisition interface  //<<<======>>>
 
 // For ADC SE pins can be changed
 #if ACQ == _ADC_0
@@ -63,7 +63,7 @@
   #define NSHIFT 12 // number of bits to shift data to the right before extracting 16 bits //<<<======>>>
 #endif
 
-#define MDEL -1     // maximal delay in buffer counts (128/fs each; for fs= 48 kHz: 128/48 = 2.5 ms each) //<<<======>>>
+#define MDEL 10     // maximal delay in buffer counts (128/fs each; for fs= 48 kHz: 128/48 = 2.5 ms each) //<<<======>>>
                     // MDEL == -1 connects ACQ interface directly to mux and queue
 
 #define GEN_WAV_FILE  // generate wave files, if undefined generate raw data (with 512 byte header) //<<<======>>>

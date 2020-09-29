@@ -35,7 +35,7 @@
 #include "AudioStream.h"
 
 //#define MQ 53 // was old value in Audio/record_queue.h
-template <int MQ>
+template <int mq>
 class mRecordQueue : public AudioStream
 {
 public:
@@ -52,24 +52,24 @@ public:
   uint32_t dropCount;
 private:
 	audio_block_t *inputQueueArray[1];
-	audio_block_t * volatile queue[MQ];
+	audio_block_t * volatile queue[mq];
 	audio_block_t *userblock;
 	volatile uint16_t head, tail, enabled;
 };
 
-template <int MQ>
-uint16_t mRecordQueue<MQ>::available(void)
+template <int mq>
+uint16_t mRecordQueue<mq>::available(void)
 {
   uint16_t h, t;
 
   h = head;
   t = tail;
   if (h >= t) return h - t;
-  return MQ + h - t;
+  return mq + h - t;
 }
 
-template <int MQ>
-void mRecordQueue<MQ>::clear(void)
+template <int mq>
+void mRecordQueue<mq>::clear(void)
 {
 	uint16_t t;
 
@@ -79,36 +79,36 @@ void mRecordQueue<MQ>::clear(void)
 	}
 	t = tail;
 	while (t != head) {
-		if (++t >= MQ) t = 0;
+		if (++t >= mq) t = 0;
 		release(queue[t]);
 	}
 	tail = t;
 }
 
-template <int MQ>
-void * mRecordQueue<MQ>::readBuffer(void)
+template <int mq>
+void * mRecordQueue<mq>::readBuffer(void)
 {
 	uint16_t t;
 
 	if (userblock) return NULL;
 	t = tail;
 	if (t == head) return NULL;
-	if (++t >= MQ) t = 0;
+	if (++t >= mq) t = 0;
 	userblock = queue[t];
 	tail = t;
 	return (void *) userblock->data;
 }
 
-template <int MQ>
-void mRecordQueue<MQ>::freeBuffer(void)
+template <int mq>
+void mRecordQueue<mq>::freeBuffer(void)
 {
 	if (userblock == NULL) return;
 	release(userblock);
 	userblock = NULL;
 }
 
-template <int MQ>
-void mRecordQueue<MQ>::update(void)
+template <int mq>
+void mRecordQueue<mq>::update(void)
 {
 	audio_block_t *block;
 	uint16_t h;
@@ -120,7 +120,7 @@ void mRecordQueue<MQ>::update(void)
 		return;
 	}
 	h = head + 1;
-	if (h >= MQ) h = 0;
+	if (h >= mq) h = 0;
 	if (h == tail) {
 		release(block); // drop incomming data
     dropCount++; // flag for main to know

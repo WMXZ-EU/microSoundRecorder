@@ -64,13 +64,13 @@
 #include "config.h"
 
 #if defined(__MK20DX256__)
-  #define M_QUEU 100 // number of buffers in aquisition queue
+  #define MAX_Q 100 // number of buffers in aquisition queue
 #elif defined(__MK64FX512__)
-  #define M_QUEU 250 // number of buffers in aquisition queue
+  #define MAX_Q 250 // number of buffers in aquisition queue
 #elif defined(__MK66FX1M0__)
-  #define M_QUEU 550 // number of buffers in aquisition queue
+  #define MAX_Q 550 // number of buffers in aquisition queue
 #else
-  #define M_QUEU 53 // number of buffers in aquisition queue
+  #define MAX_Q 53 // number of buffers in aquisition queue
 #endif
 
 //==================== Tympan audio board interface ========================================
@@ -101,6 +101,7 @@
 #if (ACQ == _ADC_0) || (ACQ == _ADC_D) || (ACQ == _I2S_32_MONO)
   #define NCH 1
 
+
   #if (ACQ == _ADC_0) || (ACQ == _ADC_D)
     #include "input_adc.h"
     AudioInputAnalog    acq(ADC_PIN);
@@ -109,9 +110,9 @@
     I2S_32         acq;
   #endif
 
-  #define mq (M_QUEU/NCH)
+  #define MQ (MAX_Q/NCH)
   #include "m_queue.h"
-  mRecordQueue<mq> queue[NCH];
+  mRecordQueue<MQ> queue[NCH];
   
   #if MDEL>=0 
     #include "m_delay.h" 
@@ -146,9 +147,14 @@
     I2S_32         acq;
   #endif
 
-  #define mq (M_QUEU/NCH)
+  #define MQ (MAX_Q/NCH)
   #include "m_queue.h"
-  mRecordQueue<mq> queue[NCH];
+  mRecordQueue<MQ> queue[NCH];
+
+  #if MDEL>=0 
+    #include "m_delay.h" 
+    mDelay<NCH,(MDEL+2)>  delay1(2); // have two buffers more in queue only to be safe 
+  #endif 
 
   #include "mProcess.h"
   mProcess process1(&snipParameters);
@@ -174,9 +180,9 @@
   #include "input_i2s_quad.h"
   AudioInputI2SQuad     acq;
   
-  #define mq (M_QUEU/NCH)
+  #define MQ (MAX_Q/NCH)
   #include "m_queue.h"
-  mRecordQueue<mq> *queue = new mRecordQueue<mq> [NCH];
+  mRecordQueue<MQ> *queue = new mRecordQueue<MQ> [NCH];
 
   AudioConnection     patchCord1(acq,0, queue[0],0);
   AudioConnection     patchCord2(acq,1, queue[1],0);
@@ -192,9 +198,9 @@
   #include "i2s_tdm.h"
   I2S_TDM         acq;
   
-  #define mq (M_QUEU/NCH)
+  #define MQ (MAX_Q/NCH)
   #include "m_queue.h"
-  mRecordQueue<mq> queue[NCH];
+  mRecordQueue<MQ> queue[NCH];
 
   #if MDEL >=0
     #undef MDEL
@@ -267,7 +273,7 @@ extern "C" void setup() {
   temperature = -0.0293 * analogRead(70) + 440.5;
 */
 
-#define MAUDIO (M_QUEU+MDEL+50)
+#define MAUDIO (MAX_Q+MDEL+50)
 	AudioMemory (MAUDIO); // 600 blocks use about 200 kB (requires Teensy 3.6)
 
   // stop I2S early (to be sure)
@@ -574,11 +580,11 @@ extern "C" void loop() {
   
   #if MDEL>=0
      Serial.printf("%4d; %10d %10d %4d; %4d %4d %4d; ",
-            queue1.dropCount, 
+            queue[0].dropCount, 
             maxValue, maxNoise, maxValue/maxNoise,
             process1.getSigCount(),process1.getDetCount(),process1.getNoiseCount());
             
-      queue1.dropCount=0;
+      queue[0].dropCount=0;
       process1.resetDetCount();
       process1.resetNoiseCount();
   #endif
