@@ -56,9 +56,7 @@ public:
   void setThreshold(int32_t val) {thresh=val;}
   int32_t getSigCount(void) {return sigCount;}
   int32_t getDetCount(void) {return detCount;}
-//  int32_t getNoiseCount(void) {return noiseCount;}
   void resetDetCount(void) {detCount=0;}
-//  void resetNoiseCount(void) {noiseCount=0;}
   
 protected:  
   audio_block_t *inputQueueArray[2];
@@ -66,22 +64,17 @@ protected:
 private:
   int32_t sigCount;
   int32_t detCount;
-//  int32_t noiseCount;
   int32_t max1Val, max2Val, avg1Val, avg2Val;
-//  uint32_t blockCount;
-//  uint32_t watchdog;
   //
    int32_t thresh;  // power SNR for snippet detection
    int32_t win0;       // noise estimation window (in units of audio blocks)
    int32_t win1;       // detection watchdog window (in units of audio blocks typicaly 10x win0)
    int32_t extr;       // min extraction window 
    int32_t inhib;      // guard window (inhibit followon secondary detections)
-//   int32_t nrep;       // noise only interval 
    int32_t ndel;       // pre detection delays in block 
   //
   int32_t nest1, nest2;// background noise estimate
      
-//  audio_block_t *out1, *out2;
 };
  
 void mProcess::begin(SNIP_Parameters_s *param)
@@ -93,25 +86,18 @@ void mProcess::begin(SNIP_Parameters_s *param)
   win1=param->win1;
   extr=param->extr;
   inhib=param->inhib;
-//  nrep=param->nrep;
   ndel=param->ndel;
 
   sigCount= -1; // start with no detection
   detCount=0;
-//  noiseCount=0;
 
   nest1=1<<10;
   nest2=1<<10;
-  
-//  out1=NULL;
-//  out2=NULL;
-
-//  watchdog=0;
 }
 
+// 6dB/octave high-pass filter
 inline void mDiff(int32_t *aux, int16_t *inp, int16_t ndat, int16_t old)
-{
-  aux[0]=(inp[0]-old);
+{ aux[0]=(inp[0]-old);
   for(int ii=1; ii< ndat; ii++) aux[ii]=(inp[ii] - inp[ii-1]);  
 }
 
@@ -126,7 +112,7 @@ inline int32_t mSig(int32_t *aux, int16_t ndat)
 
 inline int32_t avg(int32_t *aux, int16_t ndat)
 { int64_t avg=0;
-  for(int ii=0; ii< ndat; ii++){ avg+=aux[ii]; }
+  for(int ii=0; ii< ndat; ii++) {avg+=aux[ii]; }
   return avg/ndat;
 }
 
@@ -144,19 +130,8 @@ void mProcess::update(void)
     return;
   }
   
-//  blockCount++;
-
-//  if(inp1) tmp1=allocate(); else tmp1=0;
-//  if(inp2) tmp2=allocate(); else tmp2=0;
-//  // store data
-//  if(tmp1) for(int ii=0; ii< AUDIO_BLOCK_SAMPLES; ii++) tmp1->data[ii]=inp1->data[ii];
-//  if(tmp2) for(int ii=0; ii< AUDIO_BLOCK_SAMPLES; ii++) tmp2->data[ii]=inp2->data[ii];
-//  // release input buffers
-//  if(inp1) release(inp1);
-//  if(inp2) release(inp2);
-
   // do here something useful with data 
-  // example is a simple thresold detector on both channels
+  // example is a simple threshold detector on both channels
   // simple high-pass filter (6 db/octave)
   // followed by threshold detector
 
@@ -165,7 +140,7 @@ void mProcess::update(void)
   // first channel
   if(inp1)
   {
-    mDiff(aux, inp1->data, ndat, 0);//out1? out1->data[ndat-1]: tmp1->data[0]);
+    mDiff(aux, inp1->data, ndat, 0);
     max1Val = mSig(aux, ndat);
     avg1Val = avg(aux, ndat);
   }
@@ -188,69 +163,22 @@ void mProcess::update(void)
     avg2Val = 0;
   }
   
-  //  // release input buffers
+  //  done with processing of input data: release input buffers
   if(inp1) release(inp1);
   if(inp2) release(inp2);
 
   int32_t det1 = (max1Val > thresh*nest1);
   int32_t det2 = (max2Val > thresh*nest2);
 
-
-/* to be verified
-  //
-  // if threshold detector fires, the open transmisssion of input data for "extr"
-  // due to use of temprary storage tmp, the block before detection will be transmitted first
-  // that means 
-  // "extr" ==1 means both, pre-trigger and trigger blocks are transmitted
-  // "extr" ==2 means pre-trigger, trigger and a post-trigger blocks are transmitted
-  // "extr" ==3 means pre-trigger, trigger and 2 post-trigger blocks are transmitted
-  //
-  // Re-triggering is possible
-  // any detection during transmissions of blocks extends transmission
-  //
   // 
-  // on detection sigCount will be set to extr and counting down to -inhib
-  // if sigCount>0, new detections will reset sigCount to max value (extr)
-  // if sigCount reaches 0 and mustClose is 0, filre will be closed.
+  // on detection sigCount will be set to (extr+ndel) and counting down to -inhib
+  // if sigCount>0, new detections will reset sigCount to max value (extr+ndel)
+  // if sigCount reaches 0, storage will be closed.
   // new detections are only accepted if sigCount gets less than -inhib
   //
-*/
 
-  if(((sigCount>0) || (sigCount<=-inhib)) && ( det1 || det2)) 
-  {//Serial.print('+'); 
-    sigCount=extr+ndel;} // retrigger extraction
-  
-  if(sigCount>0) // we have detection or still data to be transmitted
-  { detCount++;
-    //transmit previous buffer 
-//    if(out1) transmit(out1,0);
-//    if(out2) transmit(out2,1);
-//    Serial.print('.');
-  }
-  //if(sigCount==0) Serial.println();
-  //
-  // is we wanted single event file signal main program to close immediately if queue is empty
-//  if((sigCount==0) && (mustClose==0)) { Serial.println("mustClose"); mustClose=1;}
-
-/*
-  // check if we wanted to transmit noise data outside detection data
-  if((nrep>0) && (mustClose<=0) && (sigCount<0))
-  { // transmit anyway a single buffer every now and then 
-    watchdog++;
-    if((watchdog % nrep)==0)
-    { noiseCount++;
-      //
-//      if(out1) transmit(out1,0);
-//      if(out2) transmit(out2,1);
-    }
-  }  
-  */
-
-  // clean up audio_blocks
-//  if(out1) release(out1);
-//  if(out2) release(out2);
-//  out1=tmp1;
-//  out2=tmp2;
+  if(((sigCount>0) || (sigCount<=-inhib)) && ( det1 || det2)) sigCount=extr+ndel; // retrigger extraction
+  if(sigCount>0) detCount++;
 
   // reduce sigCount to a minimal value providing the possibility of a guard window
   // between two detections

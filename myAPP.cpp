@@ -71,7 +71,7 @@
 #elif defined(__MK64FX512__)
   #define MAX_Q 250 // number of buffers in aquisition queue
 #elif defined(__MK66FX1M0__)
-  #define MAX_Q 550 // number of buffers in aquisition queue
+  #define MAX_Q 500 // number of buffers in aquisition queue
 #else
   #define MAX_Q 53 // number of buffers in aquisition queue
 #endif
@@ -543,51 +543,8 @@ extern "C" void loop() {
       state=uSD.close();
       uSD.storeConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
       outptr = diskBuffer;
-
-      // reset mustClose flag
-//      if(snipParameters.thresh>=0) mustClose=0; else mustClose=-1;
     }
-
-    /*
-    else if(started)
-    { // queue is empty that is we have no data
-      // are we told to close or running out of time?
-      // if delay is enabled must wait for delay to pass by
-      if(
-        #if MDET> 0
-            (mustClose>0) && (process1.getSigCount()< -MDEL)
-        #else
-            (mustClose<0) && (checkDutyCycle(&acqParameters, state)<0)
-        #endif
-        )
-      { 
-        #if MDET > 0
-          Serial.printf("QUEUE Empty %d %d\n",mustClose,process1.getSigCount());
-        #else
-          Serial.printf("QUEUE Empty %d\n",mustClose);
-        #endif
-        // write remaining data to disk and close file
-        if(state>=0)
-        { uint32_t nbuf = (uint32_t)(outptr-diskBuffer);
-          state=uSD.write(diskBuffer,nbuf); // this is blocking
-          state=uSD.close();
-          uSD.storeConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
-        }
-        outptr = diskBuffer;
-
-        // reset mustClose flag
-        if(snipParameters.thresh>=0) mustClose=0; else mustClose=-1;
-        #if DO_DEBUG>0
-          Serial.println("file closed");
-        #endif
-      }
-    }
-  */
-
   }
-
-
-
 
 #if DO_DEBUG>0
   // some statistics on progress
@@ -595,35 +552,35 @@ extern "C" void loop() {
   static uint32_t t0=0;
   loopCount++;
   if(millis()>t0+1000)
-  {   Serial.printf("\tloop: %5d %4d; %5d %5d; %5d",
+  {  t0=millis();
+
+    Serial.printf("\tloop: %5d %4d; %5d %5d; %5d",
           loopCount, uSD.getNbuf(), t3>100000?-1:t3,t4, 
           AudioMemoryUsageMax());
       //
-      AudioMemoryUsageMaxReset();
-      t3=1<<31;
-      t4=0;
+    AudioMemoryUsageMaxReset();
+    t3=1<<31;
+    t4=0;
     
-  #if MDEL>=0
-     Serial.printf(" | %4d; %10d %8d %8d; %4d %4d",
+  #if MDET
+    Serial.printf(" | %4d; %10d %8d %8d; %4d %4d",
             queue[0].dropCount, 
             maxValue, maxNoise, maxValue/maxNoise,
             process1.getSigCount(), process1.getDetCount());
             
-      queue[0].dropCount=0;
-      process1.resetDetCount();
-//      process1.resetNoiseCount();
+    queue[0].dropCount=0;
+    process1.resetDetCount();
   #endif
 
   #if (ACQ==_ADC_0) | (ACQ==_ADC_D) | (ACQ==_ADC_S)
     Serial.printf("; %5d %5d",PDB0_CNT, PDB0_MOD);
   #endif
-  
     Serial.println();
-    t0=millis();
     loopCount=0;
     maxValue=0;
     maxNoise=0;
- }
+  }
+
 #endif
 
   asm("wfi"); // to save some power switch off idle cpu

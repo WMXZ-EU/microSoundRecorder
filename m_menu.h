@@ -133,6 +133,7 @@ static void printAll(void)
   Serial.printf("%c %s date\n\r",         'd',getDate(text));
   Serial.printf("%c %s time\n\r",         't',getTime(text));
   Serial.println();
+  #if MDET
   Serial.printf("%c %5d processing type\r\n",       'c',snipParameters.iproc);
   Serial.printf("%c %5d threshold\r\n",             'h',snipParameters.thresh);
   Serial.printf("%c %5d noise window\r\n",          'w',snipParameters.win0);
@@ -141,6 +142,7 @@ static void printAll(void)
   Serial.printf("%c %5d inhibit window\r\n",        'i',snipParameters.inhib);
   Serial.printf("%c %5d noise repetition rate\r\n", 'k',snipParameters.nrep);
   Serial.printf("%c %5d pre trigger delay\r\n",     'p',snipParameters.ndel);
+  #endif
   //
   Serial.println();
   Serial.println("exter 'a' to print this");
@@ -173,7 +175,7 @@ static void doMenu1(void)
         
         case 'd': Serial.printf("%s\r\n",getDate(text));break;
         case 't': Serial.printf("%s\r\n",getTime(text));break;
-        
+        #if MDET
         case 'c': Serial.printf("%04d\r\n",snipParameters.iproc);break;
         case 'h': Serial.printf("%04d\r\n",snipParameters.thresh);break;
         case 'w': Serial.printf("%04d\r\n",snipParameters.win0);break;
@@ -182,6 +184,8 @@ static void doMenu1(void)
         case 'i': Serial.printf("%04d\r\n",snipParameters.inhib);break;
         case 'k': Serial.printf("%04d\r\n",snipParameters.nrep);break;
         case 'p': Serial.printf("%04d\r\n",snipParameters.ndel);break;
+        #endif
+        default: break;
       }
     }
 }
@@ -277,6 +281,7 @@ static void doMenu2(void)
                   setTime(hour,minutes,seconds);
                   break;
         //
+        #if MDET
         case 'c': snipParameters.iproc  = boundaryCheck(Serial.parseInt(),0,1); break;
         case 'h': snipParameters.thresh = boundaryCheck(Serial.parseInt(),-1,MAX_VAL); break;
         case 'w': snipParameters.win0   = boundaryCheck(Serial.parseInt(),0,MAX_VAL); break;
@@ -285,6 +290,9 @@ static void doMenu2(void)
         case 'i': snipParameters.inhib  = boundaryCheck(Serial.parseInt(),0,MAX_VAL); break;
         case 'k': snipParameters.nrep   = boundaryCheck(Serial.parseInt(),0,MAX_VAL); break;
         case 'p': snipParameters.ndel   = boundaryCheck(Serial.parseInt(),0,MDEL); break;
+        #endif
+        default: break;
+
       }
     }  
 }
