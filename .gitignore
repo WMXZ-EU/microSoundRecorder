@@ -54,3 +54,5 @@ DataSheets
 Misc_info
 Sound_Examples
 bin*
+*.d
+*.o
