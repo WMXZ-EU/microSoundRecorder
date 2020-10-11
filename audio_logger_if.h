@@ -227,9 +227,9 @@ int16_t c_uSD::close(void)
        file.seek(fileSize);
     #endif
     file.close();
-#if DO_DEBUG>0
-    Serial.println("file Closed");    
-#endif
+//#if DO_DEBUG>0
+//    Serial.println("file Closed");    
+//#endif
     state=0;  // flag to open new file
     return state;
 }

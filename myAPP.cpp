@@ -57,6 +57,9 @@
  * WMXZ 01-Jul-2018
  * aligned acoustic interfaces
  * moved enviromental interface to own include file
+ * 
+ * WMXZ 11-Oct-2020
+ * corrected transient detector
  */
 #include "core_pins.h" // this call also kinetis.h
 
@@ -114,21 +117,27 @@
   #include "m_queue.h"
   mRecordQueue<MQ> queue[NCH];
   
-  #if MDEL>=0 
+  #if MDEL > 0 
     #include "m_delay.h" 
     mDelay<NCH,(MDEL+2)>  delay1(0); // have two buffers more in queue only to be safe 
   #endif 
-    
-  #include "mProcess.h" 
-  mProcess process1(&snipParameters); 
- 
-  AudioConnection     patchCord1(acq, process1); 
-  #if MDEL <0 
-    AudioConnection     patchCord2(acq, queue[0]); 
-  #else 
-    AudioConnection     patchCord2(acq, delay1); 
-    AudioConnection     patchCord3(delay1, queue[0]); 
-  #endif 
+
+  #if MDEL<0
+      AudioConnection     patchCord2(acq, queue[0]); 
+  #else
+    #include "mProcess.h" 
+    mProcess process1(&snipParameters); 
+  
+    AudioConnection     patchCord1(acq, process1); 
+    #if MDEL == 0 
+      AudioConnection     patchCord2(acq, queue[0]); 
+    #else 
+      AudioConnection     patchCord2(acq, delay1); 
+      AudioConnection     patchCord3(delay1, queue[0]); 
+    #endif 
+
+  #endif
+
 
 /*-------------------------- stereo (dual channel) -----------------------------*/
 #elif (ACQ == _ADC_S) || (ACQ == _I2S) || (ACQ == _I2S_32) || (ACQ == _I2S_TYMPAN)
@@ -151,27 +160,31 @@
   #include "m_queue.h"
   mRecordQueue<MQ> queue[NCH];
 
-  #if MDEL>=0 
+  #if MDEL>0
     #include "m_delay.h" 
     mDelay<NCH,(MDEL+2)>  delay1(2); // have two buffers more in queue only to be safe 
   #endif 
 
-  #include "mProcess.h"
-  mProcess process1(&snipParameters);
-
-  AudioConnection     patchCord1(acq,0, process1,0);
-  AudioConnection     patchCord2(acq,1, process1,1);
-    //
-  #if MDEL <0
+  #if MDEL<0
     AudioConnection     patchCord3(acq,0, queue[0],0);
     AudioConnection     patchCord4(acq,1, queue[1],0);
-    
   #else
-    AudioConnection     patchCord3(acq,0, delay1,0);
-    AudioConnection     patchCord4(acq,1, delay1,1);
-    AudioConnection     patchCord5(delay1,0, queue[0],0);
-    AudioConnection     patchCord6(delay1,1, queue[1],0);
+    #include "mProcess.h"
+    mProcess process1(&snipParameters);
+
+    AudioConnection     patchCord1(acq,0, process1,0);
+    AudioConnection     patchCord2(acq,1, process1,1);
+    #if MDEL == 0
+      AudioConnection     patchCord3(acq,0, queue[0],0);
+      AudioConnection     patchCord4(acq,1, queue[1],0);
+    #else
+      AudioConnection     patchCord3(acq,0, delay1,0);
+      AudioConnection     patchCord4(acq,1, delay1,1);
+      AudioConnection     patchCord5(delay1,0, queue[0],0);
+      AudioConnection     patchCord6(delay1,1, queue[1],0);
+    #endif
   #endif
+
 
 /*-------------------------- (quad channel) -----------------------------*/
 #elif ACQ == _I2S_QUAD      // not yet modified for event detections and delays
@@ -247,17 +260,15 @@ void ledOff(void)
 
 time_t getTeensy3Time(){  return Teensy3Clock.get();}
 //__________________________General Arduino Routines_____________________________________
-int started=0;
+//int started=0;
 extern "C" void setup() {
   // put your setup code here, to run once:
-  int32_t nsec;
   pinMode(3,INPUT_PULLUP); // needed to enter menu if grounded
 
   // set the Time library to use Teensy 3.0's RTC to keep time
   setSyncProvider(getTeensy3Time);
 
 #if DO_DEBUG>0
-
    while(!Serial && !digitalRead(3));
 //  while(!Serial && (millis()<3000)); // use this for testing without menu
    Serial.println("microSoundRecorder");
@@ -313,15 +324,18 @@ extern "C" void setup() {
     uSD.storeConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
   }
   //
-  // check if it is our time to record
-  nsec=checkDutyCycle(&acqParameters, -1);
-  if(nsec>0) 
-  { 
-    #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
-      I2S_stopClock();
-    #endif
-    setWakeupCallandSleep(nsec); // will not return if we should not continue with acquisition 
-  }
+  #if MDEL<0
+    // check if it is our time to record
+    int32_t nsec;
+    nsec=checkDutyCycle(&acqParameters, -1);
+    if(nsec>0) 
+    { 
+      #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
+        I2S_stopClock();
+      #endif
+      setWakeupCallandSleep(nsec); // will not return if we should not continue with acquisition 
+    }
+  #endif
   
   // Now modify objects from audio library
   #if (ACQ == _ADC_0) || (ACQ == _ADC_D) || (ACQ == _ADC_S)
@@ -365,30 +379,36 @@ extern "C" void setup() {
   #endif
 
   //are we using the eventTrigger?
-  if(snipParameters.thresh>=0) mustClose=0; else mustClose=-1;
-  #if MDEL>=0
-    if(mustClose<0) delay1.setDelay(0); else delay1.setDelay(MDEL);
+//  if(snipParameters.thresh>=0) mustClose=0; else mustClose=-1;
+  #if MDEL > 0
+    delay1.setDelay(MDEL);
   #endif
   
   // set filename prefix
   uSD.setPrefix(acqParameters.name);
   // lets start
-  #if MDEL>=0
+  #if MDET
     process1.begin(&snipParameters); 
   #endif
 
   for(int ii=0; ii<NCH; ii++) queue[ii].begin();
   //
   Serial.println("End of Setup");
-  started=0;
+//  started=0;
 }
 
 volatile uint32_t maxValue=0, maxNoise=0; // possibly be updated outside
 int16_t tempBuffer[AUDIO_BLOCK_SAMPLES*NCH];
 
+// house keeping storaging activity
+#if MDEL<0
+  int16_t mustStore=1;
+#else
+  int16_t mustStore=0;
+#endif
+
 extern "C" void loop() {
   // put your main code here, to run repeatedly:
-  int32_t nsec;
   uint32_t to=0,t1,t2;
   static uint32_t t3,t4;
   static int16_t state=0; // 0: open new file, -1: last file
@@ -398,48 +418,21 @@ extern "C" void loop() {
 
   if(have_data)
   { // have data on queue
-    started=1; // flag that we have now data
-    nsec=checkDutyCycle(&acqParameters, state);
-    if(nsec<0) { uSD.setClosing();} // this will be last record in file
-    if(nsec>0) 
-    { 
-      #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
-        I2S_stopClock();
-      #endif
-      setWakeupCallandSleep(nsec); // file closed sleep now
-    }
+//    started=1; // flag that we have now data
+    #if MDEL<0
+      int32_t nsec;
+      nsec=checkDutyCycle(&acqParameters, state);
+      if(nsec<0) { uSD.setClosing();} // this will be last record in file
+      if(nsec>0) 
+      { 
+        #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
+          I2S_stopClock();
+        #endif
+        setWakeupCallandSleep(nsec); // file closed sleep now
+      } // nsec>0
+      
+    #endif
     //
-    if(state==0)
-    { // generate header before file is opened
-      #ifdef GEN_WAV_FILE // is declared in audio_logger_if.h
-         uint32_t *header=(uint32_t *) wavHeader(0); // call initially with zero filesize
-         //
-         int ndat=outptr-diskBuffer;
-         if(ndat>0)
-         { // shift exisiting data after header, which is always at beginnig of file
-          for(int ii=0; ii<ndat; ii++) diskBuffer[22+ii]=diskBuffer[ii]; 
-         }
-         // copy header to disk buffer
-         uint32_t *ptr=(uint32_t *) diskBuffer;
-         for(int ii=0;ii<11;ii++) ptr[ii] = header[ii];
-         outptr+=22; //(44 bytes)
-      #else
-         uint32_t *header=(uint32_t *) headerUpdate(); 
-         //
-         int ndat=outptr-diskBuffer;
-         if(ndat>0)
-         { // shift exisiting data after header, which is always at beginnig of file
-          for(int ii=0; ii<ndat; ii++) diskBuffer[256+ii]=diskBuffer[ii]; 
-         }
-         // copy header to disk buffer
-         uint32_t *ptr=(uint32_t *) diskBuffer;
-         // copy to disk buffer
-         for(int ii=0;ii<128;ii++) ptr[ii] = header[ii];
-         outptr+=256; //(512 bytes)
-      #endif
-      state=1;
-    }
-    
     // fetch data from queues
     int16_t * data[NCH];
     for(int ii=0; ii<NCH; ii++) data[ii] = (int16_t *)queue[ii].readBuffer();
@@ -449,121 +442,152 @@ extern "C" void loop() {
     // release queues
     for(int ii=0; ii<NCH; ii++) queue[ii].freeBuffer();
 
-    // copy data to disk buffer
-    int16_t *ptr=(int16_t *) outptr;
-    
-    // number of data in tempBuffer
-    int32_t ndat = AUDIO_BLOCK_SAMPLES*NCH;
-    
-    // number of free samples on diskbuffer
-    int32_t nout = diskBuffer+BUFFERSIZE - outptr;
+    #if(MDET)
+      mustStore = process1.getSigCount() >  0;
+    #endif
 
-    tmp = tempBuffer;
-    if (nout>ndat)
-    { // sufficient space for all data
-      for(int ii=0;ii<ndat;ii++) *ptr++ = *tmp++;
-      nout-=ndat;
-      ndat=0;
-    }
-    else
-    { // fill up disk buffer
-      int nbuf=nout;
-      if(uSD.isClosing()) nbuf=(nbuf/NCH)*NCH; // is last record of file 
-      for(int ii=0;ii<nbuf;ii++) *ptr++ = *tmp++;
-      ndat-=nbuf;
-      nout=0;
-    }
-    
-    if(nout==0) //buffer is filled, so write to disk
-    { int32_t nbuf=ptr-diskBuffer;
-    
-      to=micros();
-      state=uSD.write(diskBuffer,nbuf); // this is blocking
-      t1=micros();
-      t2=t1-to;
-      if(t2<t3) t3=t2; // accumulate some time statistics
-      if(t2>t4) t4=t2;
-
-      ptr=(int16_t *)diskBuffer;
-    }
-
-    if(ndat>0) // save residual data
+    if(mustStore)
     {
-      for(int ii=0;ii<ndat;ii++) *ptr++ = *tmp++;
-    }
-    
-    // all data are copied
-    outptr=(int16_t *)ptr; // save actual write position
-/*
-    //
-    for(int ii=0;ii<AUDIO_BLOCK_SAMPLES;ii++) 
-    { // the following is inefficient but needed for arbitrary NCH (to be improved)
-      {
-        for(int jj=0; jj<NCH; jj++)
-        {  *ptr++ = *data[jj]++;
-           uint32_t nbuf=0;
-           if((jj==0) && (state==0) && (ptr+NCH > (int16_t *)(diskBuffer+BUFFERSIZE))) nbuf = (uint32_t)(ptr-diskBuffer);
-           if(ptr == (int16_t *)(diskBuffer+BUFFERSIZE)) nbuf = BUFFERSIZE;
-           if(nbuf>0)
-           {
-              // flush diskBuffer
-              if((state>=0) 
-                           && ((snipParameters.thresh<0) 
-                                                       #if MDEL >=0
-                                                         || (process1.getSigCount()>0)
-                                                       #endif
-                             ))
-              {
-                to=micros();
-                state=uSD.write(diskBuffer,nbuf); // this is blocking
-                t1=micros();
-                t2=t1-to;
-                if(t2<t3) t3=t2; // accumulate some time statistics
-                if(t2>t4) t4=t2;
-                ptr=(int16_t *)diskBuffer;
-              }
-           }
-        }
-      }
-    } // copied now all data
-    outptr=(int16_t *)ptr; // save actual write position
-*/
-    if(!state)
-    { 
-#if DO_DEBUG>0
-      Serial.println("closed");
-#endif
-      // store config again if you wanted time of latest file stored
-      uSD.storeConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
-    }
-  }
-  else if(started)
-  { // queue is empty that is we have no data
-    // are we told to close or running out of time?
-    // if delay is enabled must wait for delay to pass by
-    if(
-        #if MDEL >=0
-          ((mustClose>0) && (process1.getSigCount()< -MDEL)) ||
+      if(state==0)
+      { // generate header before file is opened
+        #ifdef GEN_WAV_FILE // is declared in audio_logger_if.h
+          uint32_t *header=(uint32_t *) wavHeader(0); // call initially with zero filesize
+          //
+          int ndat=outptr-diskBuffer;
+          if(ndat>0)
+          { // shift exisiting data after header, which is always at beginnig of file
+            for(int ii=0; ii<ndat; ii++) diskBuffer[22+ii]=diskBuffer[ii]; 
+          }
+          // copy header to disk buffer
+          uint32_t *ptr=(uint32_t *) diskBuffer;
+          for(int ii=0;ii<11;ii++) ptr[ii] = header[ii];
+          outptr+=22; //(44 bytes)
+        #else
+          uint32_t *header=(uint32_t *) headerUpdate(); 
+          //
+          int ndat=outptr-diskBuffer;
+          if(ndat>0)
+          { // shift exisiting data after header, which is always at beginnig of file
+            for(int ii=0; ii<ndat; ii++) diskBuffer[256+ii]=diskBuffer[ii]; 
+          }
+          // copy header to disk buffer
+          uint32_t *ptr=(uint32_t *) diskBuffer;
+          // copy to disk buffer
+          for(int ii=0;ii<128;ii++) ptr[ii] = header[ii];
+          outptr+=256; //(512 bytes)
         #endif
-          ((mustClose==0) && ((checkDutyCycle(&acqParameters, state)<0))))
-    { 
-      Serial.println("QUEUE Empty");
-      // write remaining data to disk and close file
-      if(state>=0)
-      { uint32_t nbuf = (uint32_t)(outptr-diskBuffer);
-        state=uSD.write(diskBuffer,nbuf); // this is blocking
-        state=uSD.close();
-        uSD.storeConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
+        state=1;
+      } // state==0
+      
+      // copy data to disk buffer
+      int16_t *ptr=(int16_t *) outptr;
+      
+      // number of data in tempBuffer
+      int32_t ndat = AUDIO_BLOCK_SAMPLES*NCH;
+      
+      // number of free samples on diskbuffer
+      int32_t nout = diskBuffer+BUFFERSIZE - outptr;
+
+      tmp = tempBuffer;
+      if (nout>ndat)
+      { // sufficient space for all data
+        for(int ii=0;ii<ndat;ii++) *ptr++ = *tmp++;
+        nout-=ndat;
+        ndat=0;
       }
+      else
+      { // fill up disk buffer
+        int nbuf=nout;
+        if(uSD.isClosing()) nbuf=(nbuf/NCH)*NCH; // is last record of file 
+        for(int ii=0;ii<nbuf;ii++) *ptr++ = *tmp++;
+        ndat-=nbuf;
+        nout=0;
+      }
+      
+      if(nout==0) //buffer has been filled, so write to disk
+      { int32_t nbuf=ptr-diskBuffer;
+      
+        to=micros();
+        state=uSD.write(diskBuffer,nbuf); // this is blocking
+        t1=micros();
+        t2=t1-to;
+        if(t2<t3) t3=t2; // accumulate some time statistics
+        if(t2>t4) t4=t2;
+
+        ptr=(int16_t *)diskBuffer;
+      }
+
+      if(ndat>0) // save residual data
+      {
+        for(int ii=0;ii<ndat;ii++) *ptr++ = *tmp++;
+      }
+      
+      // all data are copied
+      outptr=(int16_t *)ptr; // save actual write position
+
+      if(!state)
+      { // store config again if you wanted time of latest file stored
+        uSD.storeConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
+        #if DO_DEBUG>0
+          Serial.println("closed");
+        #endif
+      }
+    }
+    else if(state>0)
+    { // close file
+      // write remaining data to disk and close file
+      uint32_t nbuf = (uint32_t)(outptr-diskBuffer);
+      if(nbuf>0)
+      { state=uSD.write(diskBuffer,nbuf); // this is blocking
+      }
+      state=uSD.close();
+      uSD.storeConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
       outptr = diskBuffer;
 
       // reset mustClose flag
-      if(snipParameters.thresh>=0) mustClose=0; else mustClose=-1;
-#if DO_DEBUG>0
-      Serial.println("file closed");
-#endif
+//      if(snipParameters.thresh>=0) mustClose=0; else mustClose=-1;
     }
+
+    /*
+    else if(started)
+    { // queue is empty that is we have no data
+      // are we told to close or running out of time?
+      // if delay is enabled must wait for delay to pass by
+      if(
+        #if MDET> 0
+            (mustClose>0) && (process1.getSigCount()< -MDEL)
+        #else
+            (mustClose<0) && (checkDutyCycle(&acqParameters, state)<0)
+        #endif
+        )
+      { 
+        #if MDET > 0
+          Serial.printf("QUEUE Empty %d %d\n",mustClose,process1.getSigCount());
+        #else
+          Serial.printf("QUEUE Empty %d\n",mustClose);
+        #endif
+        // write remaining data to disk and close file
+        if(state>=0)
+        { uint32_t nbuf = (uint32_t)(outptr-diskBuffer);
+          state=uSD.write(diskBuffer,nbuf); // this is blocking
+          state=uSD.close();
+          uSD.storeConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
+        }
+        outptr = diskBuffer;
+
+        // reset mustClose flag
+        if(snipParameters.thresh>=0) mustClose=0; else mustClose=-1;
+        #if DO_DEBUG>0
+          Serial.println("file closed");
+        #endif
+      }
+    }
+  */
+
   }
+
+
+
 
 #if DO_DEBUG>0
   // some statistics on progress
@@ -571,26 +595,27 @@ extern "C" void loop() {
   static uint32_t t0=0;
   loopCount++;
   if(millis()>t0+1000)
-  {  Serial.printf("\tloop: %5d %4d; %5d %5d; %5d; ",
-          loopCount, uSD.getNbuf(), t3,t4, 
+  {   Serial.printf("\tloop: %5d %4d; %5d %5d; %5d",
+          loopCount, uSD.getNbuf(), t3>100000?-1:t3,t4, 
           AudioMemoryUsageMax());
-    AudioMemoryUsageMaxReset();
-    t3=1<<31;
-    t4=0;
-  
+      //
+      AudioMemoryUsageMaxReset();
+      t3=1<<31;
+      t4=0;
+    
   #if MDEL>=0
-     Serial.printf("%4d; %10d %10d %4d; %4d %4d %4d; ",
+     Serial.printf(" | %4d; %10d %8d %8d; %4d %4d",
             queue[0].dropCount, 
             maxValue, maxNoise, maxValue/maxNoise,
-            process1.getSigCount(),process1.getDetCount(),process1.getNoiseCount());
+            process1.getSigCount(), process1.getDetCount());
             
       queue[0].dropCount=0;
       process1.resetDetCount();
-      process1.resetNoiseCount();
+//      process1.resetNoiseCount();
   #endif
 
   #if (ACQ==_ADC_0) | (ACQ==_ADC_D) | (ACQ==_ADC_S)
-    Serial.printf("%5d %5d",PDB0_CNT, PDB0_MOD);
+    Serial.printf("; %5d %5d",PDB0_CNT, PDB0_MOD);
   #endif
   
     Serial.println();

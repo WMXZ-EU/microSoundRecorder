@@ -65,6 +65,9 @@
 
 #define MDEL 10     // maximal delay in buffer counts (128/fs each; for fs= 48 kHz: 128/48 = 2.5 ms each) //<<<======>>>
                     // MDEL == -1 connects ACQ interface directly to mux and queue
+                    // MDEL >= 0 switches on event detector
+                    // MDEL > 0 delays detector by MDEL buffers 
+#define MDET (MDEL>=0)
 
 #define GEN_WAV_FILE  // generate wave files, if undefined generate raw data (with 512 byte header) //<<<======>>>
 
@@ -92,15 +95,15 @@ typedef struct
 //  acquire whole day (from midnight to noon and noot to midnight)
 //
 
-ACQ_Parameters_s acqParameters = { 30, 10, 60, 0, 12, 12, 24, 0, "TDM"}; //<<<======>>>
-
-// the following global variable may be set from anywhere
-// if one wanted to close file immediately
-// mustClose = -1: disable this feature, close on time limit but finish to fill diskBuffer
-// mustcClose = 0: flush data and close exactly on time limit
-// mustClose = 1: flush data and close immediately (not for user, this will be done by program)
-
-int16_t mustClose = -1;// initial value (can be -1: ignore event trigger or 0: implement event trigger) //<<<======>>>
+ACQ_Parameters_s acqParameters = { 60, 10, 60, 0, 12, 12, 24, 0, "WMXZ"}; //<<<======>>>
+/*
+#if MDET
+  // enable storing of snippets
+  int16_t mustClose = 0;
+#else
+  int16_t mustClose = -1;
+#endif
+*/
 
 //---------------------------------- snippet extraction module ---------------------------------------------
 typedef struct
@@ -111,10 +114,19 @@ typedef struct
    int32_t extr;       // min extraction window
    int32_t inhib;      // guard window (inhibit follow-on secondary detections)
    int32_t nrep;       // noise only interval (nrep =0  indicates no noise archiving)
-   int32_t ndel;        // pre trigger delay (in units of audio blocks)
+   int32_t ndel;       // pre trigger delay (in units of audio blocks)
 } SNIP_Parameters_s; 
+// Note: 375 blocks is 1s for 48 kHz sampling
 
-SNIP_Parameters_s snipParameters = { 0, -1, 1000, 10000, 3750, 375, 0, MDEL}; //<<<======>>>
+#if MDEL<0
+  // continuous acquisition; disable detector
+  #define THR -1
+#else
+  #define THR 100 // detection threshold (on power: 100 == 20 dB) <<<======>>>
+#endif
+
+SNIP_Parameters_s snipParameters = { 0, THR, 1000, 10000, 38, 375, 0, MDEL}; //<<<======>>>
+
 
 //-------------------------- hibernate control---------------------------------------------------------------
 // The following two lines control the maximal hibernate (sleep) duration
