@@ -96,14 +96,7 @@ typedef struct
 //
 
 ACQ_Parameters_s acqParameters = { 60, 10, 60, 0, 12, 12, 24, 0, "WMXZ"}; //<<<======>>>
-/*
-#if MDET
-  // enable storing of snippets
-  int16_t mustClose = 0;
-#else
-  int16_t mustClose = -1;
-#endif
-*/
+
 
 //---------------------------------- snippet extraction module ---------------------------------------------
 typedef struct
@@ -113,7 +106,7 @@ typedef struct
    int32_t win1;       // detection watchdog window (in units of audio blocks typically 10x win0)
    int32_t extr;       // min extraction window
    int32_t inhib;      // guard window (inhibit follow-on secondary detections)
-   int32_t nrep;       // noise only interval (nrep =0  indicates no noise archiving)
+   int32_t nrep;       // noise only interval (nrep =0  indicates no noise archiving, TBD)
    int32_t ndel;       // pre trigger delay (in units of audio blocks)
 } SNIP_Parameters_s; 
 // Note: 375 blocks is 1s for 48 kHz sampling
@@ -122,7 +115,7 @@ typedef struct
   // continuous acquisition; disable detector
   #define THR -1
 #else
-  #define THR 100 // detection threshold (on power: 100 == 20 dB) <<<======>>>
+  #define THR 100 // detection threshold (on power: 100 == 20 dB) //<<<======>>>
 #endif
 
 SNIP_Parameters_s snipParameters = { 0, THR, 1000, 10000, 38, 375, 0, MDEL}; //<<<======>>>
