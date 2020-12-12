@@ -1,6 +1,6 @@
 {
   "env": {
-    "ROOT0": "C:/Users/zimme/Documents/arduino-1.8.12/hardware/teensy/avr",
+    "ROOT0": "C:/Users/zimme/Documents/arduino-1.8.13/hardware/teensy/avr",
     "LOCAL_LIBRARIES": "C:/Users/zimme/Documents/Arduino/libraries"
   },
   "configurations": [
@@ -11,19 +11,20 @@
         "${ROOT0}/cores/teensy3/**",
         "${ROOT0}/libraries/SPI/**",
         "${ROOT0}/libraries/Time/**",
-        "${LOCAL_LIBRARIES}/SdFat_V2/**"
+        "${ROOT0}/libraries/SD/**",
+        "${ROOT0}/libraries/SdFat/**"
       ],
       "forcedInclude": [],
       "defines": [
         "__MK66FX1M0__",
-        "TEENSYDUINO=152",
+        "TEENSYDUINO=154",
         "F_CPU=96000000",
         "USB_SERIAL",
         "LAYOUT_US_ENGLISH",
         "ARDUINO"
       ],
       "compilerPath": "${ROOT0}/../../tools/arm/bin/arm-none-eabi-gcc.exe",
-      "intelliSenseMode": "gcc-x64"
+      "intelliSenseMode": "gcc-arm"
     },
     {
       "name": "Teensy 40",
@@ -32,13 +33,13 @@
         "${ROOT0}/cores/teensy4/**",
         "${ROOT0}/libraries/SPI/**",
         "${ROOT0}/libraries/Time/**",
-        "${LOCAL_LIBRARIES}/SdFat-beta/**",
-        "${LOCAL_LIBRARIES}/MTP_t4/**"
+        "${ROOT0}/libraries/SD/**",
+        "${ROOT0}/libraries/SdFat/**"
       ],
       "forcedInclude": [],
       "defines": [
         "__IMXRT1062__",
-        "TEENSYDUINO=149",
+        "TEENSYDUINO=154",
         "F_CPU=600000000",
         "USB_SERIAL",
         "LAYOUT_US_ENGLISH",

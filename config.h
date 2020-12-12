@@ -63,7 +63,7 @@
   #define NSHIFT 12 // number of bits to shift data to the right before extracting 16 bits //<<<======>>>
 #endif
 
-#define MDEL 10     // maximal delay in buffer counts (128/fs each; for fs= 48 kHz: 128/48 = 2.5 ms each) //<<<======>>>
+#define MDEL -1     // maximal delay in buffer counts (128/fs each; for fs= 48 kHz: 128/48 = 2.5 ms each) //<<<======>>>
                     // MDEL == -1 connects ACQ interface directly to mux and queue
                     // MDEL >= 0 switches on event detector
                     // MDEL > 0 delays detector by MDEL buffers 
@@ -95,7 +95,7 @@ typedef struct
 //  acquire whole day (from midnight to noon and noot to midnight)
 //
 
-ACQ_Parameters_s acqParameters = { 60, 10, 60, 0, 12, 12, 24, 0, "WMXZ"}; //<<<======>>>
+ACQ_Parameters_s acqParameters = { 60, 10, 120, 0, 12, 12, 24, 0, "WMXZ"}; //<<<======>>>
 
 
 //---------------------------------- snippet extraction module ---------------------------------------------

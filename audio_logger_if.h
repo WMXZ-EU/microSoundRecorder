@@ -30,7 +30,7 @@
 // rename in SdFat-beta/src the file SdFat.h to SdFat-beta.h
 // to avoid confict with stock SD library needed for Audio library
 //
-#include "SdFat-beta.h" 
+#include "SdFat.h" 
 
 #ifdef GEN_WAV_FILE
   char postfix[5]=".wav";
