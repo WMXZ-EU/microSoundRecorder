@@ -252,7 +252,7 @@ static void doMenu2(void)
     int T1=acqParameters.T1;
     int T2=acqParameters.T2;
     int T3=acqParameters.T3;
-    //int T4=acqParameters.T4; mot used
+    //int T4=acqParameters.T4; not used
     //
     while(!Serial.available());
     char c=Serial.read();

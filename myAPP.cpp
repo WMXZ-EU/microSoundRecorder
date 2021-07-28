@@ -22,9 +22,7 @@
  
  /*
  * Environmental micro Sound Recorder
- * using Bill Greimans's SdFs on Teensy 3.6 
- * which must be downloaded from https://github.com/greiman/SdFs 
- * and installed as local library
+ * uses SdFat-V2 by Bill Greimann which is included in Teensyduino
  * 
  * uses PJRC's Teensy Audio library for acquisition queuing 
  * audio tool ADC is modified to sample at other than 44.1 kHz
@@ -60,6 +58,9 @@
  * 
  * WMXZ 11-Oct-2020
  * corrected transient detector
+ * 
+ * WMXZ 12-Dec-2020
+ * adapted to SdFat-V2, now part of Teensyduino
  */
 #include "core_pins.h" // this call also kinetis.h
 
@@ -313,7 +314,7 @@ extern "C" void setup() {
   // write temperature, pressure and humidity to SD card
    uSD.writeTemperature(temperature, pressure, humidity, lux);
 #endif
-
+/*
   // if pin3 is connected to GND enter menu mode
   int ret;
   if(!digitalReadFast(3))
@@ -322,6 +323,18 @@ extern "C" void setup() {
       
     // should here save parameters to disk if modified
     uSD.storeConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
+  }
+*/
+  // if pin3 is connected to GND enter menu mode
+  int ret;
+  if(!digitalReadFast(3))
+  { ret=doMenu();
+      
+    // should here save parameters to disk if modified
+    uSD.storeConfig((uint32_t *)&acqParameters, 8, (int32_t *)&snipParameters, 8);
+
+    if(ret>0) 
+    setWakeupCallandSleep(ret*60);  // should shutdown now and wait for start
   }
   //
   #if MDEL<0
@@ -394,7 +407,10 @@ extern "C" void setup() {
   for(int ii=0; ii<NCH; ii++) queue[ii].begin();
   //
   Serial.println("End of Setup");
-//  started=0;
+//  started=0;  
+  #if DO_DEBUG>1
+    logFile.open("logFile.txt", O_CREAT | O_RDWR | O_APPEND);
+  #endif
 }
 
 volatile uint32_t maxValue=0, maxNoise=0; // possibly be updated outside
@@ -427,6 +443,9 @@ extern "C" void loop() {
       { 
         #if ((ACQ == _I2S) || (ACQ == _I2S_QUAD) || (ACQ == _I2S_32) || (ACQ == _I2S_32_MONO) || (ACQ == _I2S_TYMPAN) || (ACQ == _I2S_TDM))
           I2S_stopClock();
+        #endif
+        #if DO_DEBUG>1
+          logFile.close();
         #endif
         setWakeupCallandSleep(nsec); // file closed sleep now
       } // nsec>0
@@ -558,6 +577,12 @@ extern "C" void loop() {
           loopCount, uSD.getNbuf(), t3>100000?-1:t3,t4, 
           AudioMemoryUsageMax());
       //
+    #if DO_DEBUG>1  
+      logFile.printf("\tloop: %5d %4d; %5d %5d; %5d\n",
+            loopCount, uSD.getNbuf(), t3>100000?-1:t3,t4, 
+            AudioMemoryUsageMax());
+    #endif
+
     AudioMemoryUsageMaxReset();
     t3=1<<31;
     t4=0;

@@ -24,7 +24,7 @@
 // possible modifications are marked with //<<<======>>>
 //
 //----------------------------------------------------------------------------------------
-#define DO_DEBUG 1 // print debug info over usb-serial line  //<<<======>>>
+#define DO_DEBUG 2 // print debug info over usb-serial line  (2 write also log file)//<<<======>>>
 
 #define F_SAMP 48000 // desired sampling frequency  //<<<======>>>
 /*
@@ -46,7 +46,7 @@
 #define _I2S_TYMPAN     7 // I2S (16 bit tympan stereo audio audio) for use the tympan board
 #define _I2S_TDM        8 // I2S (8 channel TDM) // only first 5 channels are used (modify myAcq.h if less or more channels)
 
-#define ACQ   _I2S_32 // selected acquisition interface  //<<<======>>>
+#define ACQ   I2S_32_MONO // selected acquisition interface  //<<<======>>>
 
 // For ADC SE pins can be changed
 #if ACQ == _ADC_0
@@ -95,7 +95,8 @@ typedef struct
 //  acquire whole day (from midnight to noon and noot to midnight)
 //
 
-ACQ_Parameters_s acqParameters = { 60, 10, 120, 0, 12, 12, 24, 0, "WMXZ"}; //<<<======>>>
+//ACQ_Parameters_s acqParameters = { 60, 10, 120, 0, 12, 12, 24, 0, "WMXZ"}; //<<<======>>>
+ACQ_Parameters_s acqParameters = { 300, 300, 3600, 0, 12, 12, 24, 0, "WMXZ"}; //<<<======>>>
 
 
 //---------------------------------- snippet extraction module ---------------------------------------------

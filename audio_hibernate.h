@@ -192,9 +192,12 @@ int32_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
     { 
       if((flag>0) && (tt >= t_start + t_dur)) //we are indeed still recording
       { // need to close file
-#if DO_DEBUG>0
-        Serial.println("close acquisition");
-#endif
+        #if DO_DEBUG>0
+            Serial.println("close acquisition");
+        #endif
+        #if DO_DEBUG>1
+            logFile.println("close acquisition");
+        #endif
         t_start = tt; // update start time for next file
         return -1; // flag to close acquisition
       }
@@ -218,10 +221,14 @@ int32_t checkDutyCycle(ACQ_Parameters_s *acqParameters,int16_t flag)
           #ifdef SLEEP_SHORT
             if(nsec>ShortSleepDuration) nsec=ShortSleepDuration;
           #endif
-#if DO_DEBUG>0
-          Serial.println(nsec); 
-          Serial.println("Hibernate now 1");
-#endif
+          #if DO_DEBUG>0
+            Serial.println(nsec); 
+            Serial.println("Hibernate now 1");
+          #endif
+          #if DO_DEBUG>1
+            logFile.println(nsec); 
+            logFile.println("Hibernate now 1");
+          #endif
           return nsec; 
         }
       }

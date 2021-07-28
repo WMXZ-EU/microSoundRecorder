@@ -32,6 +32,8 @@
 //
 #include "SdFat.h" 
 
+FsFile logFile;
+
 #ifdef GEN_WAV_FILE
   char postfix[5]=".wav";
 #else
@@ -109,9 +111,12 @@ char *makeFilename(char * prefix)
 
   sprintf(filename, "%s_%04d_%02d_%02d_%02d_%02d_%02d%s", prefix, 
                     year(), month(), day(), hour(), minute(), second(), postfix);
-#if DO_DEBUG>0
-  Serial.println(filename);
-#endif
+  #if DO_DEBUG>0
+    Serial.println(filename);
+  #endif
+  #if DO_DEBUG>1
+    logFile.println(filename);
+  #endif
   return filename;  
 }
 
