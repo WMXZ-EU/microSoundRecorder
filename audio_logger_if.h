@@ -163,6 +163,7 @@ char * wavHeader(uint32_t fileSize)
    return wheader;
 }
 //____________________________ FS Interface implementation______________________
+/*
 void c_uSD::init()
 {
   if (!sd.begin(SD_CONFIG))
@@ -179,6 +180,44 @@ void c_uSD::init()
     }
   }
 
+  // Set Time callback
+  FsDateTime::callback = dateTime;
+  //
+  nbuf=0;
+  state=0;
+}
+*/
+void c_uSD::init()
+{
+  delay(200);
+  int SD_success = 0;
+  char text[32];
+  char SD_filename[24];
+
+  while (!sd.begin(SD_CONFIG))
+  {
+     // configure pin 13 for LED      
+     pinMode(13,OUTPUT);
+     for(int idx = 0; idx < 8; idx++)
+     {
+         digitalWriteFast(13,HIGH);
+         delay(200);
+         digitalWriteFast(13,LOW);
+         delay(200);
+     }
+     delay(5000);
+     SD_success++;
+     // reconfigure pin 13 for I2S
+     CORE_PIN13_CONFIG = PORT_PCR_MUX(4);  // PTC5,  I2S0_RXD0
+  }
+
+  sprintf(SD_filename, "SD_s_%s.txt", acqParameters.name);
+  file.open(SD_filename, O_CREAT|O_WRITE|O_APPEND);
+    sprintf(text, "%04d_%02d_%02d,", year(), month(), day());  file.write((char*)text, strlen(text));
+    sprintf(text, "%02d_%02d_%02d,", hour(), minute(), second());   file.write((char*)text, strlen(text));
+    sprintf(text, "%10d\r\n", SD_success);          file.write((char*)text, strlen(text));
+  file.close(); 
+  
   // Set Time callback
   FsDateTime::callback = dateTime;
   //
