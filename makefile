@@ -38,7 +38,7 @@ ifeq ($(BOARD_ID),TEENSY40)
 endif
 
 ROOT0		:= C:\Users\zimme\Documents
-ARDUINO		:= $(ROOT0)\arduino-1.8.13\hardware
+ARDUINO		:= $(ROOT0)\arduino-1.8.15\hardware
 
 LIBS_LOCAL_BASE := $(ROOT0)\Arduino\libraries
 LIBS_LOCAL      := 

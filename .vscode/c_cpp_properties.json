@@ -1,6 +1,6 @@
 {
   "env": {
-    "ROOT0": "C:/Users/zimme/Documents/arduino-1.8.13/hardware/teensy/avr",
+    "ROOT0": "C:/Users/zimme/Documents/arduino-1.8.15/hardware/teensy/avr",
     "LOCAL_LIBRARIES": "C:/Users/zimme/Documents/Arduino/libraries"
   },
   "configurations": [
@@ -9,6 +9,7 @@
       "includePath": [
         "src/**",
         "${ROOT0}/cores/teensy3/**",
+        "${ROOT0}/libraries/Audio/**",
         "${ROOT0}/libraries/SPI/**",
         "${ROOT0}/libraries/Time/**",
         "${ROOT0}/libraries/SD/**",

@@ -45,8 +45,9 @@
 #define _I2S_32_MONO    6 // I2S (32 bit mono audio), eg. one ICS43434 mic
 #define _I2S_TYMPAN     7 // I2S (16 bit tympan stereo audio audio) for use the tympan board
 #define _I2S_TDM        8 // I2S (8 channel TDM) // only first 5 channels are used (modify myAcq.h if less or more channels)
+#define _I2S_SGTL5000   9 // I2S PJRC Audioboard
 
-#define ACQ  _I2S_32_MONO // selected acquisition interface  //<<<======>>>
+#define ACQ  _I2S_SGTL5000 // selected acquisition interface  //<<<======>>>
 
 // For ADC SE pins can be changed
 #if ACQ == _ADC_0

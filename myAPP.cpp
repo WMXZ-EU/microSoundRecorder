@@ -77,19 +77,6 @@
   #define MAX_Q 53 // number of buffers in aquisition queue
 #endif
 
-//==================== Tympan audio board interface ========================================
-#if ACQ == _I2S_TYMPAN
-  #include "src/Tympan.h"
-  #include "src/control_tlv320aic3206.h"
-  TympanPins    tympPins(TYMPAN_REVISION);        //TYMPAN_REV_C or TYMPAN_REV_D
-  TympanBase    audioHardware(tympPins);
-#endif
-
-//==================== Environmental sensors ========================================
-#if USE_ENVIRONMENTAL_SENSORS==1
-  #include "enviro.h"
-#endif
-
 //==================== Audio interface ========================================
 /*
  * standard Audio Interface
@@ -141,14 +128,14 @@
 
 
 /*-------------------------- stereo (dual channel) -----------------------------*/
-#elif (ACQ == _ADC_S) || (ACQ == _I2S) || (ACQ == _I2S_32) || (ACQ == _I2S_TYMPAN)
+#elif (ACQ == _ADC_S) || (ACQ == _I2S) || (ACQ == _I2S_32) 
   #define NCH 2
 
   #if (ACQ == _ADC_S)
     #include "input_adcs.h"
     AudioInputAnalogStereo  acq(ADC_PIN1,ADC_PIN2);
 
-  #elif (ACQ == _I2S) || (ACQ == _I2S_TYMPAN)
+  #elif (ACQ == _I2S) 
     #include "input_i2s.h"
     AudioInputI2S         acq;
 
@@ -227,9 +214,90 @@
   AudioConnection     patchCord3(acq,3,queue[3],0);
   AudioConnection     patchCord4(acq,4,queue[4],0);
   //
+#elif ACQ == _I2S_SGTL5000  // to be tested
+  #include "control_sgtl5000.h"
+  AudioControlSGTL5000     audioShield;
+
+  #include "input_i2s.h"
+  AudioInputI2S         acq;
+
+  #define NCH 2
+  #define MQ (MAX_Q/NCH)
+  #include "m_queue.h"
+  mRecordQueue<MQ> queue[NCH];
+
+  #if MDEL>0
+    #include "m_delay.h" 
+    mDelay<NCH,(MDEL+2)>  delay1(2); // have two buffers more in queue only to be safe 
+  #endif 
+
+  #if MDEL<0
+    AudioConnection     patchCord3(acq,0, queue[0],0);
+    AudioConnection     patchCord4(acq,1, queue[1],0);
+  #else
+    #include "mProcess.h"
+    mProcess process1(&snipParameters);
+
+    AudioConnection     patchCord1(acq,0, process1,0);
+    AudioConnection     patchCord2(acq,1, process1,1);
+    #if MDEL == 0
+      AudioConnection     patchCord3(acq,0, queue[0],0);
+      AudioConnection     patchCord4(acq,1, queue[1],0);
+    #else
+      AudioConnection     patchCord3(acq,0, delay1,0);
+      AudioConnection     patchCord4(acq,1, delay1,1);
+      AudioConnection     patchCord5(delay1,0, queue[0],0);
+      AudioConnection     patchCord6(delay1,1, queue[1],0);
+    #endif
+  #endif
+
+#elif ACQ == _I2S_TYMPAN
+  #include "src/Tympan.h"
+  #include "src/control_tlv320aic3206.h"
+  TympanPins    tympPins(TYMPAN_REVISION);        //TYMPAN_REV_C or TYMPAN_REV_D
+  TympanBase    audioHardware(tympPins);
+
+  #include "input_i2s.h"
+  AudioInputI2S         acq;
+
+  #define NCH 2
+  #define MQ (MAX_Q/NCH)
+  #include "m_queue.h"
+  mRecordQueue<MQ> queue[NCH];
+
+  #if MDEL>0
+    #include "m_delay.h" 
+    mDelay<NCH,(MDEL+2)>  delay1(2); // have two buffers more in queue only to be safe 
+  #endif 
+
+  #if MDEL<0
+    AudioConnection     patchCord3(acq,0, queue[0],0);
+    AudioConnection     patchCord4(acq,1, queue[1],0);
+  #else
+    #include "mProcess.h"
+    mProcess process1(&snipParameters);
+
+    AudioConnection     patchCord1(acq,0, process1,0);
+    AudioConnection     patchCord2(acq,1, process1,1);
+    #if MDEL == 0
+      AudioConnection     patchCord3(acq,0, queue[0],0);
+      AudioConnection     patchCord4(acq,1, queue[1],0);
+    #else
+      AudioConnection     patchCord3(acq,0, delay1,0);
+      AudioConnection     patchCord4(acq,1, delay1,1);
+      AudioConnection     patchCord5(delay1,0, queue[0],0);
+      AudioConnection     patchCord6(delay1,1, queue[1],0);
+    #endif
+  #endif
 #else
   #error "invalid acquisition device"
 #endif
+
+//==================== Environmental sensors ========================================
+#if USE_ENVIRONMENTAL_SENSORS==1
+  #include "enviro.h"
+#endif
+
 
 // private 'libraries' included directly into sketch
 #include "audio_mods.h"
@@ -367,6 +435,10 @@ extern "C" void setup() {
     // typical shift value is between 8 and 12 as lower ADC bits are only noise
     int16_t nbits=NSHIFT; 
     acq.digitalShift(nbits); 
+  #elif ACQ == _I2S_SGTL5000
+    audioShield.enable();
+    audioShield.volume(0.5);
+    audioShield.inputSelect(AUDIO_INPUT_LINEIN);
 
   #elif(ACQ == _I2S_TYMPAN)
     // initalize tympan's tlv320aic3206
