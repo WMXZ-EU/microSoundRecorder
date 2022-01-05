@@ -1,5 +1,6 @@
 {
   "command": "C:/Users/zimme/Documents/Arduino/make.exe",
+  "config": "${command:cpptools.activeConfigName}",
   "tasks": [
     {
       "label": "Build",
@@ -10,7 +11,8 @@
       "args": [
         "all",
         "-j",
-        "-Otarget"
+        "-Otarget",
+        "CONFIG_NAME=${command:cpptools.activeConfigName}"
       ]
     },
     {
@@ -20,7 +22,8 @@
         "isDefault": true
       },
       "args": [
-        "clean"
+        "clean",
+        "CONFIG_NAME=${command:cpptools.activeConfigName}"
       ]
     },
     {
@@ -32,7 +35,8 @@
       "args": [
         "upload",
         "-j",
-        "-Otarget"
+        "-Otarget",
+        "CONFIG_NAME=${command:cpptools.activeConfigName}"
       ]
     }
   ],

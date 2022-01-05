@@ -1,53 +1,70 @@
 {
   "env": {
-    "ROOT0": "C:/Users/zimme/Documents/arduino-1.8.15/hardware/teensy/avr",
-    "LOCAL_LIBRARIES": "C:/Users/zimme/Documents/Arduino/libraries"
+    "ROOT0": "C:/Users/zimme/Documents",
+    "ROOT": "${ROOT0}/arduino-1.8.19/hardware/teensy/avr",
+    "LOCAL_LIBRARIES": "${ROOT0}/Arduino/libraries",
+    "COMMON_DEFINES": [ "TEENSYDUINO=156",
+      "USB_SERIAL",
+      "LAYOUT_US_ENGLISH",
+      "ARDUINO"
+    ],
+    "COMMON_LIBS": [
+      "src/**",
+      "${ROOT}/libraries/Audio/**",
+      "${ROOT}/libraries/SPI/**",
+      "${ROOT}/libraries/Time/**",
+      "${ROOT}/libraries/SD/**",
+      "${ROOT}/libraries/SdFat/**"
+    ]
   },
   "configurations": [
-    {
-      "name": "Teensy 36",
+    { "name": "Teensy 36",
       "includePath": [
-        "src/**",
-        "${ROOT0}/cores/teensy3/**",
-        "${ROOT0}/libraries/Audio/**",
-        "${ROOT0}/libraries/SPI/**",
-        "${ROOT0}/libraries/Time/**",
-        "${ROOT0}/libraries/SD/**",
-        "${ROOT0}/libraries/SdFat/**"
+        "${COMMON_LIBS}",
+        "${ROOT}/cores/teensy3/**"
       ],
       "forcedInclude": [],
       "defines": [
         "__MK66FX1M0__",
-        "TEENSYDUINO=154",
+        "ARDUINO_TEENSY36",
         "F_CPU=96000000",
-        "USB_SERIAL",
-        "LAYOUT_US_ENGLISH",
-        "ARDUINO"
+        "${COMMON_DEFINES}"
       ],
-      "compilerPath": "${ROOT0}/../../tools/arm/bin/arm-none-eabi-gcc.exe",
-      "intelliSenseMode": "gcc-arm"
+      "compilerPath": "${ROOT}/../../tools/arm/bin/arm-none-eabi-gcc.exe",
+      "intelliSenseMode": "gcc-arm",
+      "cppStandard": "gnu++14"    
     },
-    {
-      "name": "Teensy 40",
+    { "name": "Teensy 40",
       "includePath": [
-        "src/**",
-        "${ROOT0}/cores/teensy4/**",
-        "${ROOT0}/libraries/SPI/**",
-        "${ROOT0}/libraries/Time/**",
-        "${ROOT0}/libraries/SD/**",
-        "${ROOT0}/libraries/SdFat/**"
+        "${COMMON_LIBS}",
+        "${ROOT}/cores/teensy4/**"
       ],
       "forcedInclude": [],
       "defines": [
         "__IMXRT1062__",
-        "TEENSYDUINO=154",
+        "ARDUINO_TEENSY40",
         "F_CPU=600000000",
-        "USB_SERIAL",
-        "LAYOUT_US_ENGLISH",
-        "ARDUINO"
+        "${COMMON_DEFINES}"
       ],
-      "compilerPath": "${ROOT0}/../../tools/arm/bin/arm-none-eabi-gcc.exe",
-      "intelliSenseMode": "gcc-x64"
+      "compilerPath": "${ROOT}/../../tools/arm/bin/arm-none-eabi-gcc.exe",
+      "intelliSenseMode": "gcc-arm",
+      "cppStandard": "gnu++14"    
+    },
+    { "name": "Teensy 41",
+      "includePath": [
+        "${COMMON_LIBS}",
+        "${ROOT}/cores/teensy4/**"
+      ],
+      "forcedInclude": [],
+      "defines": [
+        "__IMXRT1062__",
+        "ARDUINO_TEENSY41",
+        "F_CPU=600000000",
+        "${COMMON_DEFINES}"
+      ],
+      "compilerPath": "${ROOT}/../../tools/arm/bin/arm-none-eabi-gcc.exe",
+      "intelliSenseMode": "gcc-arm",
+      "cppStandard": "gnu++14"    
     }
   ],
   "version": 4

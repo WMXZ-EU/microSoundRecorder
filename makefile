@@ -12,68 +12,94 @@
 SHELL            := cmd.exe
 export SHELL
 
-TARGET_NAME      := microSoundRecorder
+NOW = $(shell powershell [int](Get-Date -UFormat +%s))
+$(info Now = $(NOW))
 
-BOARD_ID         := TEENSY36
-#BOARD_ID         := TEENSY40
+
+# get configuration fromm VSCode
+$(info Config = $(CONFIG_NAME))
+BOARD_ID = T$(lastword $(CONFIG_NAME))
+
+#BOARD_ID        := T36
+#BOARD_ID        := T40
+#BOARD_ID        := T41
+
+ROOT = $(shell cd)
+PROJECT := $(notdir $(ROOT))
+TARGET_NAME     := $(PROJECT)_$(BOARD_ID)
+$(info Target is : $(TARGET_NAME))
+
+ROOT0 = $(ROOT)\..\..
 
 USB_DEVICE		:= USB_SERIAL
 
-ifeq ($(BOARD_ID),TEENSY36)
+FLAGS_CPU		:= -mthumb -mfloat-abi=hard -fsingle-precision-constant
+
+ifeq ($(BOARD_ID),T36)
 	MCU			:= mk66fx1m0
 	Family 		:= teensy3
-	FLAGS_CPU   := -mthumb -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -fsingle-precision-constant
-	LIBS        := -larm_cortexM4lf_math -lm
-	DEFINES     := -D__MK66FX1M0__ 
+	LDFILE		:= mk66fx1m0.ld
+	FLAGS_CPU   += -mcpu=cortex-m4  -mfpu=fpv4-sp-d16 
+	LIBS        := -larm_cortexM4lf_math
+	DEFINES     := -D__MK66FX1M0__ -DARDUINO_TEENSY36
 	DEFINES     += -DF_CPU=96000000
 endif
 
-ifeq ($(BOARD_ID),TEENSY40)
+ifeq ($(BOARD_ID),T40)
 	MCU			:= imxrt1062
 	Family		:= teensy4
-	FLAGS_CPU   := -mthumb -mcpu=cortex-m7 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -fsingle-precision-constant
-	LIBS        := -larm_cortexM4lf_math -lm
-	DEFINES     := -D__IMXRT1062__ 
+	LDFILE		:= imxrt1062.ld
+	FLAGS_CPU   += -mcpu=cortex-m7 -mfpu=fpv5-d16
+	LIBS        := larm_cortexM7lfsp_math
+	DEFINES     := -D__IMXRT1062__ -DARDUINO_TEENSY40
 	DEFINES     += -DF_CPU=396000000
 endif
 
-ROOT0		:= C:\Users\zimme\Documents
-ARDUINO		:= $(ROOT0)\arduino-1.8.15\hardware
+ifeq ($(BOARD_ID),T41)
+	MCU			:= imxrt1062
+	Family		:= teensy4
+	LDFILE		:= imxrt1062_t41.ld
+	FLAGS_CPU   += -mcpu=cortex-m7 -mfpu=fpv5-d16
+	LIBS        := -larm_cortexM7lfsp_mat
+	DEFINES     := -D__IMXRT1062__ -DARDUINO_TEENSY41
+	DEFINES     += -DF_CPU=396000000
+endif
+
+DEFINES     	+= -D$(USB_DEVICE)
+$(info $(DEFINES))
+DEFINES     	+= -DTEENSYDUINO=156 -DARDUINO=10819 -DLAYOUT_US_ENGLISH
 
 LIBS_LOCAL_BASE := $(ROOT0)\Arduino\libraries
 LIBS_LOCAL      := 
 
+ARDUINO		:= $(ROOT0)\arduino-1.8.19\hardware
+
 LIBS_SHARED_BASE  := $(ARDUINO)\teensy\avr\libraries
-LIBS_SHARED       := SPI Time
-LIBS_SHARED		  += Audio Wire SerialFlash SD SdFat
+LIBS_SHARED       := SPI Time  Audio Wire SerialFlash SD SdFat
 
 CORE_BASE        := $(ARDUINO)\teensy\avr\cores\$(Family)
 GCC_BASE         := $(ARDUINO)\tools\arm\bin
 UPL_PJRC_B       := $(ARDUINO)\tools
 
+$(info $(GCC_BASE))
 #CORE_BASE		 := $(RROT0)\Arduino\PJRC_cores\teensy4
 
 #******************************************************************************
 # Flags and Defines
 #******************************************************************************
-#FLAGS_CPU   := -mthumb -mcpu=cortex-m7 -mfloat-abi=hard -mfpu=fpv5-d16
-FLAGS_OPT   := -O2
+FLAGS_OPT   := -Os
 FLAGS_COM   := -g -Wall -ffunction-sections -fdata-sections -nostdlib -MMD
 FLAGS_LSP   := 
 
-FLAGS_CPP   := -std=gnu++14 -fno-exceptions -fpermissive -fno-rtti -fno-threadsafe-statics -felide-constructors -Wno-error=narrowing
+FLAGS_CPP   := -std=gnu++14 -fno-exceptions -fpermissive -fno-rtti -fno-threadsafe-statics
+FLAGS_CPP   += -felide-constructors -Wno-error=narrowing
 FLAGS_C     := 
 FLAGS_S     := -x assembler-with-cpp
-FLAGS_LD    := -Wl,--gc-sections,--relax
-FLAGS_LD    += -Wl,--defsym=__rtc_localtime=$(shell powershell [int](Get-Date -UFormat +%s))
-#FLAGS_LD    := -Wl,--gc-sections,--relax,--defsym=__rtc_localtime=$(shell powershell [int](Get-Date -UFormat +%s)[0])
-FLAGS_LD    +=-T$(CORE_BASE)/$(MCU).ld
 
-#LIBS        := -larm_cortexM7lfsp_math -lm -lstdc++
-LIBS		+= -lstdc++
+FLAGS_LD    := -Wl,--print-memory-usage,--gc-sections,--relax,--defsym=__rtc_localtime=$(NOW)
+FLAGS_LD    += -T$(CORE_BASE)/$(LDFILE)
 
-DEFINES     += -DTEENSYDUINO=149 -DARDUINO=10810 -DLAYOUT_US_ENGLISH
-DEFINES     += -D$(USB_DEVICE)
+LIBS		+= -lm -lstdc++
 
 CPP_FLAGS   := $(FLAGS_CPU) $(FLAGS_OPT) $(FLAGS_COM) $(DEFINES) $(FLAGS_CPP)
 C_FLAGS     := $(FLAGS_CPU) $(FLAGS_OPT) $(FLAGS_COM) $(DEFINES) $(FLAGS_C)
@@ -121,9 +147,6 @@ OBJCOPY     := $(GCC_BASE)/arm-none-eabi-objcopy
 SIZE        := $(GCC_BASE)/arm-none-eabi-size
 OBJDUMP     := $(GCC_BASE)/arm-none-eabi-objdump
 UPL_PJRC    := "$(UPL_PJRC_B)/teensy_post_compile" -test -file=$(TARGET_NAME) -path=$(BIN) -tools="$(UPL_PJRC_B)" -board=$(BOARD_ID) -reboot
-UPL_TYCMD   := $(UPL_TYCMD_B)/tyCommanderC upload $(TARGET_HEX) --autostart --wait --multi
-UPL_CLICMD  := $(UPL_CLICMD_B)/teensy_loader_cli -mmcu=$(MCU) -v $(TARGET_HEX)
-UPL_JLINK   := $(UPL_JLINK_B)/jlink -commanderscript .vsteensy/flash.jlink
 
 #******************************************************************************
 # Source and Include Files
@@ -201,15 +224,6 @@ clean:   cleanUser cleanCore cleanLib
 
 upload: all
 	@$(UPL_PJRC)
-
-uploadTy: all
-	@$(UPL_TYCMD)
-
-uploadCLI: all
-	@$(UPL_CLICMD)
-
-uploadJLink: all
-	@$(UPL_JLINK)
 
 
 # Core library ----------------------------------------------------------------
